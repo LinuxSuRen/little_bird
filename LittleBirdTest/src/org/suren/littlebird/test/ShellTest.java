@@ -14,11 +14,14 @@ public class ShellTest {
 	 */
 	public static void main(String[] args) {
 		try {
-			Shell shell = (Shell)Naming.lookup("rmi://10.0.32.3:/8989/Shell");
+			Shell shell = (Shell)Naming.lookup("rmi://10.0.32.3:8989/Shell");
 			
-			String env = shell.getEnv("PATH");
-			
-			System.out.println(env);;
+			for(int i = 0; i < 10; i++)
+			{
+				String env = shell.getEnv("PATH");
+				
+				System.out.println(env);;
+			}
 		} catch (MalformedURLException e) {
 			e.printStackTrace();
 		} catch (RemoteException e) {
