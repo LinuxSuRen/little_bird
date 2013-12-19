@@ -1,75 +1,191 @@
 package org.suren.littlebird;
 
 import java.io.File;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.lang.annotation.Annotation;
 import java.net.URL;
 import java.net.URLDecoder;
-import java.rmi.Remote;
-import java.rmi.RemoteException;
-import java.rmi.registry.LocateRegistry;
-import java.rmi.registry.Registry;
+import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
 
-import org.suren.littlebird.annotation.Publish;
+import org.suren.littlebird.log.ArchLogger;
+import org.suren.littlebird.log.ConsoleAppender;
+import org.suren.littlebird.log.DefaultAppender;
 
 public class ResourceLoader
 {
-	private Registry registry;
 	private ExecutorService service = Executors.newCachedThreadPool();
 	private ArrayBlockingQueue<Class<?>> classQueue =
 			new ArrayBlockingQueue<Class<?>>(100);
+	private AtomicReference<HashMap<Class<?>, ArrayList<Class<?>>>> result =
+			new AtomicReference<HashMap<Class<?>, ArrayList<Class<?>>>>(null);
+	private static AtomicReference<ResourceLoader> loaderRef =
+			new AtomicReference<ResourceLoader>(null);
 	private String prefix;
-	private boolean done = false;
+	private AtomicBoolean done = new AtomicBoolean(false);
+	private ArchLogger logger = ArchLogger.getInstance();
+	private DefaultAppender appender = new ConsoleAppender();
 	
-	public void discover(int port) throws RemoteException
+	private ResourceLoader()
 	{
-		String name = this.getClass().getPackage().getName();
-		prefix = name.replace(".", File.separator);
+		appender.addFilter(this.getClass().getName());
 		
-		registry = LocateRegistry.createRegistry(port);
+		logger.putAppender(appender);
+	}
+	
+	public static ResourceLoader getInstance()
+	{
+		ResourceLoader loader = loaderRef.get();
+		if(loader == null)
+		{
+			loaderRef.set(new ResourceLoader());
+			loader = loaderRef.get();
+		}
+		
+		return loader;
+	}
+	
+	public void discover(final Class<?> ... annos)
+	{
+		if(annos == null || annos.length == 0)
+		{
+			return;
+		}
+		
+		String name = this.getClass().getPackage().getName();
+		prefix = name.replace(".", "/");
+		logger.debug("discover begin. prefix : " + prefix);
+		
+		result.set(new HashMap<Class<?>, ArrayList<Class<?>>>()); 
 		
 		service.submit(findClassTask);
-		service.submit(findPublishTask);
-	}
-	
-	public void discover() throws RemoteException
-	{
-		discover(8989);
-	}
-	
-	private Callable<String> findClassTask = new Callable<String>()
-	{
-
-		@Override
-		public String call() throws Exception
+		service.submit(new Runnable()
 		{
-			Enumeration<URL> res =
-					ClassLoader.getSystemResources(prefix);
-			
-			while(res.hasMoreElements())
+			@Override
+			public void run()
 			{
-				URL url = res.nextElement();
-				if(!"file".equals(url.getProtocol()))
+				appender.addFilter(this.getClass().getName());
+				
+				while(true)
 				{
-					continue;
+					synchronized (service)
+					{
+						if(done.get() && classQueue.size() == 0)
+						{
+							break;
+						}
+					}
+					
+					Class<?> cls = null;
+					try
+					{
+						cls = classQueue.take();
+					}
+					catch (InterruptedException e)
+					{
+						e.printStackTrace();
+					}
+					
+					if(cls == null)
+					{
+						continue;
+					}
+					
+					for(Class anno : annos)
+					{
+						Object obj = cls.getAnnotation(anno);
+						
+						if(obj == null)
+						{
+							continue;
+						}
+						
+						ArrayList<Class<?>> list = result.get().get(anno);
+						if(list == null)
+						{
+							list = new ArrayList<Class<?>>();
+							result.get().put(anno, list);
+						}
+						
+						list.add(cls);
+						logger.debug("discover annotation : " + obj);
+						
+						break;
+					}
 				}
-				
-				String path = URLDecoder.decode(url.getPath(), "utf-8");
-				File file = new File(path);
-				
-				filter(file);
+			}
+		});
+	}
+	
+	private Runnable findClassTask = new Runnable()
+	{
+		@Override
+		public void run()
+		{
+			appender.addFilter(this.getClass().getName());
+			
+			Enumeration<URL> res = null;
+			try
+			{
+				res = ClassLoader.getSystemClassLoader().getResources(prefix);
+			}
+			catch (IOException e)
+			{
+				e.printStackTrace();
+			}
+			
+			if(res != null)
+			{
+				try
+				{
+					while(res.hasMoreElements())
+					{
+						URL url = res.nextElement();
+						logger.debug("url:" + url);
+						
+						if("file".equals(url.getProtocol()))
+						{
+							String path = URLDecoder.decode(url.getPath(), "utf-8");
+							File file = new File(path);
+							
+							logger.debug("found file : " + path);
+							filter(file);
+						}
+						else if("jar".equals(url.getProtocol()))
+						{
+							int spIndex = url.getPath().indexOf("!");
+							if(spIndex == -1)
+							{
+								continue;
+							}
+							
+							String path = URLDecoder.decode(
+									url.getPath().substring(0, spIndex), "utf-8");
+							File jarFile = new File(path.substring(5));
+							jarFilter(jarFile);
+						}
+					}
+				}
+				catch(UnsupportedEncodingException e)
+				{
+					e.printStackTrace();
+				}
 			}
 			
 			synchronized (service)
 			{
-				done = true;
+				done.set(true);
 			}
-			
-			return "";
 		}
 	};
 	
@@ -92,6 +208,7 @@ public class ResourceLoader
 		else if(file.isFile())
 		{
 			String absPath = file.getAbsolutePath();
+			absPath = absPath.replace('\\', '/');
 			int index = absPath.indexOf(prefix);
 			
 			if(index == -1)
@@ -100,10 +217,61 @@ public class ResourceLoader
 			}
 			
 			String clsName = absPath.substring(index);
-			clsName = clsName.replace(File.separatorChar, '.');
+			clsName = clsName.replace('/', '.');
 			clsName = clsName.replace(".class", "");
 			
 			tryRecognize(clsName);
+		}
+	}
+	
+	private void jarFilter(File file)
+	{
+		if(file == null)
+		{
+			return;
+		}
+		
+		if(!file.isFile())
+		{
+			logger.error("jar file not found: " + file.getAbsolutePath());
+			
+			return;
+		}
+		
+		try
+		{
+			JarFile jarFile = new JarFile(file);
+			
+			Enumeration<JarEntry> entries = jarFile.entries();
+			if(entries == null)
+			{
+				return;
+			}
+			
+			while(entries.hasMoreElements())
+			{
+				JarEntry entry = entries.nextElement();
+				
+				if(entry.isDirectory())
+				{
+					continue;
+				}
+				
+				String path = entry.getName();
+				if(path.startsWith(prefix))
+				{
+					path = path.replace(".class", "");
+					path = path.replace("\\", ".");
+					path = path.replace("/", ".");
+					
+					tryRecognize(path);
+				}
+			}
+		}
+		catch (IOException e)
+		{
+			logger.error("jarFile access error." + file.getAbsolutePath());
+			return;
 		}
 	}
 	
@@ -112,15 +280,14 @@ public class ResourceLoader
 		try
 		{
 			Class<?> cls = Class.forName(className);
-			Annotation annotation = cls.getAnnotation(Publish.class);
+			Annotation[] annotations = cls.getAnnotations();
 			
-			if(annotation == null)
+			if(annotations == null)
 			{
 				return false;
 			}
 			
 			classQueue.put(cls);
-			System.out.println("discover : " + cls);
 			
 			return true;
 		}
@@ -134,37 +301,13 @@ public class ResourceLoader
 		}
 	}
 	
-	private Callable<String> findPublishTask = new Callable<String>()
+	public boolean isFinished()
 	{
-
-		@Override
-		public String call() throws Exception
-		{
-			while(true)
-			{
-				synchronized (service)
-				{
-					if(done && classQueue.size() == 0)
-					{
-						break;
-					}
-				}
-				
-				Class<?> cls = classQueue.take();
-				
-				Publish publish = cls.getAnnotation(Publish.class);
-				Object obj = cls.newInstance();
-				if(obj instanceof Remote && publish != null)
-				{
-					Remote remoteObj = (Remote)obj;
-					
-					registry.bind(publish.name(), remoteObj);
-					
-					System.out.println(publish.name() + " is published.");
-				}
-			}
-			
-			return null;
-		}
-	};
+		return done.get();
+	}
+	
+	public List<Class<?>> getResult(Class<?> type)
+	{
+		return result.get().get(type);
+	}
 }
