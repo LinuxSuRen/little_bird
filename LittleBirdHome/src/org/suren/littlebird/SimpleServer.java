@@ -74,7 +74,7 @@ public abstract class SimpleServer implements ArchServer
 			return -1;
 		}
 	
-		return serviceQueue.size();
+		return serviceQueue.remainingCapacity();
 	}
 	
 	public int busyResource()
@@ -84,7 +84,7 @@ public abstract class SimpleServer implements ArchServer
 			return -1;
 		}
 		
-		return serviceQueue.remainingCapacity();
+		return serviceQueue.size();
 	}
 	
 	public List<ClientInfo> clientList()
@@ -110,6 +110,12 @@ public abstract class SimpleServer implements ArchServer
 	@Override
 	public boolean stop()
 	{
+		List<ClientInfo> clientList = clientList();
+		for(ClientInfo clientInfo : clientList)
+		{
+			clientInfo.tearDown();
+		}
+		
 		serviceQueue.clear();
 		
 		ServerSocket server = serverRef.get();

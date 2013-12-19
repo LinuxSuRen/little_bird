@@ -6,6 +6,7 @@ import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 import org.suren.littlebird.Mouse.ClickType;
 
@@ -32,10 +33,6 @@ public class MouseServer extends SimpleServer
 		
 		int capacity = 1;
 		serviceQueue = new ArrayBlockingQueue<ClientInfo>(capacity);
-		for(int i = 0; i < capacity; i++)
-		{
-			serviceQueue.add(new ClientInfo());
-		}
 		
 		logger.info("mouse server init success.");
 		
@@ -60,9 +57,13 @@ public class MouseServer extends SimpleServer
 				break;
 			}
 			
+			ClientInfo info = new ClientInfo();
 			try
 			{
-				ClientInfo info = serviceQueue.take();
+				if(!serviceQueue.offer(info, 5000, TimeUnit.MILLISECONDS))
+				{
+					continue;
+				}
 				
 				logger.info("get ticket : " + info);
 			}
@@ -80,15 +81,17 @@ public class MouseServer extends SimpleServer
 			catch (IOException e)
 			{
 				e.printStackTrace();
+				serviceQueue.remove(info);
 				
 				continue;
 			}
 			
-			process(client);
+			info.setSocket(client);
+			process(info);
 		}
 	}
 	
-	private void process(final Socket client)
+	private void process(final ClientInfo info)
 	{
 		servicePool.execute(new Runnable()
 		{
@@ -98,11 +101,11 @@ public class MouseServer extends SimpleServer
 			{
 				try
 				{
-					execute(client);
+					execute(info.getSocket());
 				}
 				finally
 				{
-					serviceQueue.add(new ClientInfo());
+					serviceQueue.remove(info);
 				}
 			}
 		});
@@ -114,10 +117,13 @@ public class MouseServer extends SimpleServer
 		InputStream in = null;
 		OutputStream out = null;
 		
-		try {
+		try
+		{
 			in = client.getInputStream();
 			out = client.getOutputStream();
-		} catch (IOException e2) {
+		}
+		catch (IOException e2)
+		{
 			e2.printStackTrace();
 			return;
 		}
@@ -134,9 +140,12 @@ public class MouseServer extends SimpleServer
 			byte[] buffer = new byte[1024];
 			int len = -1;
 			
-			try {
+			try
+			{
 				len = in.read(buffer);
-			} catch (IOException e1) {
+			}
+			catch (IOException e1)
+			{
 				break;
 			}
 			

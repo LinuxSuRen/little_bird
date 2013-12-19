@@ -19,6 +19,7 @@ import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 import com.sun.image.codec.jpeg.JPEGCodec;
 import com.sun.image.codec.jpeg.JPEGEncodeParam;
@@ -48,10 +49,6 @@ public class MonitorServer extends SimpleServer
 		
 		int capacity = 20;
 		serviceQueue = new ArrayBlockingQueue<ClientInfo>(capacity);
-		for(int i = 0; i < capacity; i++)
-		{
-			serviceQueue.add(new ClientInfo());
-		}
 		
 		return true;
 	}
@@ -73,10 +70,14 @@ public class MonitorServer extends SimpleServer
 			{
 				break;
 			}
-			
+
+			ClientInfo info = new ClientInfo();
 			try
 			{
-				ClientInfo info = serviceQueue.take();
+				if(!serviceQueue.offer(info, 5000, TimeUnit.MILLISECONDS))
+				{
+					continue;
+				}
 				
 				logger.info("get ticket : " + info);
 			}
@@ -94,15 +95,17 @@ public class MonitorServer extends SimpleServer
 			catch (IOException e)
 			{
 				e.printStackTrace();
+				serviceQueue.remove(info);
 				
 				continue;
 			}
-			
-			monitorDispatch(client);
+
+			info.setSocket(client);
+			monitorDispatch(info);
 		}
 	}
 	
-	private void monitorDispatch(final Socket client)
+	private void monitorDispatch(final ClientInfo info)
 	{
 		servicePool.execute(new Runnable()
 		{
@@ -112,11 +115,11 @@ public class MonitorServer extends SimpleServer
 			{
 				try
 				{
-					execute(client);
+					execute(info.getSocket());
 				}
 				finally
 				{
-					serviceQueue.add(new ClientInfo());
+					serviceQueue.remove(info);
 				}
 			}
 		});
@@ -244,6 +247,10 @@ public class MonitorServer extends SimpleServer
 			e.printStackTrace();
 			return false;
 		}
+		
+		logger.debug("size : " + byteArrayOut.toByteArray().length + "\t"
+				+ rectangle.getLocation().x + "-" + rectangle.getLocation().y
+				+ rectangle.getWidth() + "-" + rectangle.getHeight());
 		
 		return true;
 	}

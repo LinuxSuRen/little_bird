@@ -1,9 +1,13 @@
 package org.suren.littlebird;
 
+import java.io.IOException;
+import java.net.Socket;
+
 public class ClientInfo
 {
 	private boolean empty;
 	
+	private Socket socket;
 	private String address;
 	private int port;
 	private long connectedTime;
@@ -20,6 +24,35 @@ public class ClientInfo
 		this.connectedTime = connectedTime;
 		
 		empty = false;
+	}
+	
+	public boolean tearDown()
+	{
+		if(socket != null)
+		{
+			try
+			{
+				socket.close();
+				
+				return true;
+			}
+			catch (IOException e)
+			{
+				e.printStackTrace();
+			}
+		}
+		
+		return false;
+	}
+
+	public Socket getSocket()
+	{
+		return socket;
+	}
+
+	public void setSocket(Socket socket)
+	{
+		this.socket = socket;
 	}
 
 	public String getAddress()
