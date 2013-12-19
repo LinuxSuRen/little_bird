@@ -6,6 +6,8 @@ import java.awt.Robot;
 import java.awt.event.InputEvent;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.suren.littlebird.log.ArchLogger;
+
 public final class Mouse implements Runnable
 {
 	private static Mouse mouse = new Mouse();
@@ -13,6 +15,8 @@ public final class Mouse implements Runnable
 	private Point point = new Point();
 	private AtomicBoolean done = new AtomicBoolean();
 	private Robot robot = null;
+	
+	private ArchLogger logger = ArchLogger.getInstance();
 	
 	private final int MAX_CLICK_TIMES = 5;
 	
@@ -154,7 +158,7 @@ public final class Mouse implements Runnable
 			e.printStackTrace();
 		}
 		
-		System.out.println("server started.");
+		logger.info("server started.");
 		
 		while(true)
 		{

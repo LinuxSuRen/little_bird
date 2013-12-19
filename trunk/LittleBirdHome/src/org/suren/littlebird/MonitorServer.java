@@ -34,19 +34,9 @@ public class MonitorServer extends SimpleServer
 		ACTION_CAPTURE_AUTO};
 	
 	private ThreadLocal<Point> localPoint = new ThreadLocal<Point>();
-
-	/**
-	 * @param args
-	 * @throws IOException 
-	 */
-	public static void main(String[] args) throws IOException
-	{
-		SimpleServer monitor = new MonitorServer();
-		if(monitor.init(8990))
-		{
-			new Thread(monitor).start();
-		}
-	}
+	private ThreadLocal<Dimension> localDimension = new ThreadLocal<Dimension>();
+	
+	private float quality = 0.1f;
 
 	@Override
 	public boolean init(int port)
@@ -57,10 +47,10 @@ public class MonitorServer extends SimpleServer
 		}
 		
 		int capacity = 20;
-		serviceQueue = new ArrayBlockingQueue<Long>(capacity);
+		serviceQueue = new ArrayBlockingQueue<ClientInfo>(capacity);
 		for(int i = 0; i < capacity; i++)
 		{
-			serviceQueue.add(System.currentTimeMillis());
+			serviceQueue.add(new ClientInfo());
 		}
 		
 		return true;
@@ -71,7 +61,7 @@ public class MonitorServer extends SimpleServer
 	{
 		if(!isInited())
 		{
-			System.err.println("server no inited.");
+			logger.error("server no inited.");
 			
 			return;
 		}
@@ -86,9 +76,9 @@ public class MonitorServer extends SimpleServer
 			
 			try
 			{
-				long time = serviceQueue.take();
+				ClientInfo info = serviceQueue.take();
 				
-				System.out.println("get ticket : " + time);
+				logger.info("get ticket : " + info);
 			}
 			catch (InterruptedException e1)
 			{
@@ -126,7 +116,7 @@ public class MonitorServer extends SimpleServer
 				}
 				finally
 				{
-					serviceQueue.add(System.currentTimeMillis());
+					serviceQueue.add(new ClientInfo());
 				}
 			}
 		});
@@ -173,8 +163,6 @@ public class MonitorServer extends SimpleServer
 			}
 			
 			String cmd = new String(buffer, 0, len);
-			System.out.println(cmd);
-			
 			if(cmd.startsWith(ACTION_CAPTURE) || cmd.startsWith(ACTION_CAPTURE_BY)
 					|| cmd.startsWith(ACTION_CAPTURE_AUTO))
 			{
@@ -182,21 +170,24 @@ public class MonitorServer extends SimpleServer
 				
 				if(capture(cmd, byteArrayOut))
 				{
-					try {
+					try
+					{
 						byte[] byteBuffer = byteArrayOut.toByteArray();
 						
-						System.out.println(byteBuffer.length);
+						logger.debug(byteBuffer.length);
 						
 						new DataOutputStream(out).writeInt(byteBuffer.length);
 						out.write(byteBuffer);
-					} catch (IOException e) {
+					}
+					catch (IOException e)
+					{
 						e.printStackTrace();
 						break;
 					}
 				}
 				else
 				{
-					System.out.println("error capture.");
+					logger.error("error capture.");
 				}
 				
 				continue;
@@ -207,7 +198,7 @@ public class MonitorServer extends SimpleServer
 					new DataOutputStream(out).writeInt(1);
 					out.write(0);
 				} catch (IOException e) {
-					System.err.println("invalid cmd.");
+					logger.error("invalid cmd.");
 					e.printStackTrace();
 				}
 			}
@@ -233,7 +224,7 @@ public class MonitorServer extends SimpleServer
 		BufferedImage bufferedImage = robot.createScreenCapture(rectangle);
 
 		JPEGEncodeParam param = JPEGCodec.getDefaultJPEGEncodeParam(bufferedImage);
-		param.setQuality(0.1f, true);
+		param.setQuality(getQuality(), true);
 		JPEGImageEncoder encoder = JPEGCodec.createJPEGEncoder(byteArrayOut);
 		
 		Point relativePos = getRelativePos(rectangle);
@@ -243,7 +234,7 @@ public class MonitorServer extends SimpleServer
 		}
 		else
 		{
-			System.err.println("unknow relative mouse point.");
+			logger.error("unknow relative mouse point.");
 		}
 		
 		try {
@@ -399,7 +390,20 @@ public class MonitorServer extends SimpleServer
 		}
 		else if(rectangle.width <= 0)
 		{
-			rectangle.width = 100;
+			Dimension lastRec = localDimension.get();
+			
+			if(lastRec != null)
+			{
+				rectangle.width = lastRec.width;
+			}
+			else
+			{
+				rectangle.width = 100;
+			}
+		}
+		else
+		{
+			lastDimensionRem(rectangle.width, -1);
 		}
 		
 		if(rectangle.height > dimension.height)
@@ -408,7 +412,20 @@ public class MonitorServer extends SimpleServer
 		}
 		else if(rectangle.height <= 0)
 		{
-			rectangle.height = 100;
+			Dimension lastRec = localDimension.get();
+			
+			if(lastRec != null)
+			{
+				rectangle.height = lastRec.height;
+			}
+			else
+			{
+				rectangle.height = 100;
+			}
+		}
+		else
+		{
+			lastDimensionRem(-1, rectangle.height);
 		}
 		
 		if(rectangle.x < 0)
@@ -428,5 +445,41 @@ public class MonitorServer extends SimpleServer
 		{
 			rectangle.y = dimension.height - rectangle.height;
 		}
+	}
+	
+	private void lastDimensionRem(int width, int height)
+	{
+		Dimension dimension = localDimension.get();
+		if(dimension == null)
+		{
+			dimension = new Dimension();
+		}
+		
+		if(width > 0)
+		{
+			dimension.setSize(width, dimension.getHeight());
+		}
+		
+		if(height > 0)
+		{
+			dimension.setSize(dimension.getWidth(), height);
+		}
+		
+		localDimension.set(dimension);
+	}
+
+	public float getQuality()
+	{
+		return quality;
+	}
+
+	public void setQuality(float quality)
+	{
+		if(quality < 0 || quality > 1)
+		{
+			return;
+		}
+		
+		this.quality = quality;
 	}
 }

@@ -22,19 +22,6 @@ public class MouseServer extends SimpleServer
 	private static final String MSG_ERR = "error";
 	private static final String MSG_OK = "ok";
 
-	/**
-	 * @param args
-	 * @tRhrows IOException 
-	 */
-	public static void main(String[] args) throws IOException
-	{
-		SimpleServer monitor = new MouseServer();
-		if(monitor.init(8989))
-		{
-			new Thread(monitor).start();
-		}
-	}
-
 	@Override
 	public boolean init(int port)
 	{
@@ -44,11 +31,13 @@ public class MouseServer extends SimpleServer
 		}
 		
 		int capacity = 1;
-		serviceQueue = new ArrayBlockingQueue<Long>(capacity);
+		serviceQueue = new ArrayBlockingQueue<ClientInfo>(capacity);
 		for(int i = 0; i < capacity; i++)
 		{
-			serviceQueue.add(System.currentTimeMillis());
+			serviceQueue.add(new ClientInfo());
 		}
+		
+		logger.info("mouse server init success.");
 		
 		return true;
 	}
@@ -58,7 +47,7 @@ public class MouseServer extends SimpleServer
 	{
 		if(!isInited())
 		{
-			System.err.println("mouse server no inited.");
+			logger.error("mouse server no inited.");
 			
 			return;
 		}
@@ -73,9 +62,9 @@ public class MouseServer extends SimpleServer
 			
 			try
 			{
-				long time = serviceQueue.take();
+				ClientInfo info = serviceQueue.take();
 				
-				System.out.println("get ticket : " + time);
+				logger.info("get ticket : " + info);
 			}
 			catch (InterruptedException e1)
 			{
@@ -113,7 +102,7 @@ public class MouseServer extends SimpleServer
 				}
 				finally
 				{
-					serviceQueue.add(System.currentTimeMillis());
+					serviceQueue.add(new ClientInfo());
 				}
 			}
 		});
@@ -327,6 +316,6 @@ public class MouseServer extends SimpleServer
 			}
 		}
 		
-		System.out.println("done---" + client);
+		logger.info("client : " + client + " closed.");
 	}
 }
