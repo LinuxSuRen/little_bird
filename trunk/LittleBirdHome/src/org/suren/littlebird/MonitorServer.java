@@ -16,8 +16,11 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketAddress;
+import java.net.SocketTimeoutException;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
@@ -113,13 +116,41 @@ public class MonitorServer extends SimpleServer
 			@Override
 			public void run()
 			{
+				Socket client = info.getSocket();
+				SocketAddress remoteAddr = client.getRemoteSocketAddress();
+				
+				if(remoteAddr instanceof InetSocketAddress)
+				{
+					InetSocketAddress remoteInetAddr = (InetSocketAddress)
+							remoteAddr;
+					
+					logger.info("client : " + remoteInetAddr.getHostName() +
+							":" + remoteInetAddr.getPort());
+				}
+				else
+				{
+					logger.info("client : " + remoteAddr);
+				}
+				
 				try
 				{
-					execute(info.getSocket());
+					if(serverListener != null)
+					{
+						serverListener.onLine(info);
+					}
+					
+					execute(client);
 				}
 				finally
 				{
+					logger.info("prepare to close " + info);
+					
 					serviceQueue.remove(info);
+					
+					if((serverListener != null))
+					{
+						serverListener.offLine(info);
+					}
 				}
 			}
 		});
@@ -177,10 +208,12 @@ public class MonitorServer extends SimpleServer
 					{
 						byte[] byteBuffer = byteArrayOut.toByteArray();
 						
-						logger.debug(byteBuffer.length);
-						
 						new DataOutputStream(out).writeInt(byteBuffer.length);
 						out.write(byteBuffer);
+					}
+					catch(SocketTimeoutException e)
+					{
+						continue;
 					}
 					catch (IOException e)
 					{
@@ -249,8 +282,8 @@ public class MonitorServer extends SimpleServer
 		}
 		
 		logger.debug("size : " + byteArrayOut.toByteArray().length + "\t"
-				+ rectangle.getLocation().x + "-" + rectangle.getLocation().y
-				+ rectangle.getWidth() + "-" + rectangle.getHeight());
+				+ rectangle.getLocation().x + "-" + rectangle.getLocation().y + "-"
+				+ rectangle.width + "-" + rectangle.height);
 		
 		return true;
 	}

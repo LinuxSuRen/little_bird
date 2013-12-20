@@ -101,11 +101,21 @@ public class MouseServer extends SimpleServer
 			{
 				try
 				{
+					if(serverListener != null)
+					{
+						serverListener.onLine(info);
+					}
+					
 					execute(info.getSocket());
 				}
 				finally
 				{
 					serviceQueue.remove(info);
+					
+					if(serverListener != null)
+					{
+						serverListener.offLine(info);
+					}
 				}
 			}
 		});
@@ -122,9 +132,9 @@ public class MouseServer extends SimpleServer
 			in = client.getInputStream();
 			out = client.getOutputStream();
 		}
-		catch (IOException e2)
+		catch (IOException e)
 		{
-			e2.printStackTrace();
+			e.printStackTrace();
 			return;
 		}
 		

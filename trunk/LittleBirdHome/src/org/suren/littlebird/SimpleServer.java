@@ -5,6 +5,7 @@ import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.SocketAddress;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -20,6 +21,7 @@ public abstract class SimpleServer implements ArchServer
 	protected ArrayBlockingQueue<ClientInfo> serviceQueue = null;
 	protected ExecutorService servicePool = null;
 	protected ArchLogger logger = ArchLogger.getInstance();
+	protected ArchServerListener serverListener = null;
 
 	@Override
 	public boolean init(int port)
@@ -67,6 +69,11 @@ public abstract class SimpleServer implements ArchServer
 		return result;
 	}
 	
+	public void setListener(ArchServerListener listener)
+	{
+		serverListener = listener;
+	}
+	
 	public int idleResource()
 	{
 		if(serviceQueue == null)
@@ -95,8 +102,7 @@ public abstract class SimpleServer implements ArchServer
 		while(iterator.hasNext())
 		{
 			ClientInfo info = iterator.next();
-			
-			if(info.isEmpty())
+			if(info.getSocket() == null)
 			{
 				continue;
 			}
@@ -111,6 +117,7 @@ public abstract class SimpleServer implements ArchServer
 	public boolean stop()
 	{
 		List<ClientInfo> clientList = clientList();
+		System.out.println(Arrays.toString(clientList.toArray()));
 		for(ClientInfo clientInfo : clientList)
 		{
 			clientInfo.tearDown();

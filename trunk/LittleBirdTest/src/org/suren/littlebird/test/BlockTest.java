@@ -2,32 +2,48 @@ package org.suren.littlebird.test;
 
 import java.util.Iterator;
 import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 public class BlockTest
 {
 
 	/**
 	 * @param args
+	 * @throws InterruptedException 
 	 */
-	public static void main(String[] args)
+	public static void main(String[] args) throws InterruptedException
 	{
-		ArrayBlockingQueue<Object> queue = new ArrayBlockingQueue<Object>(10);
+		final ArrayBlockingQueue<Test> queue = new ArrayBlockingQueue<Test>(2);
 		
-		queue.add("hoa");
-		queue.add("test");
-		queue.add(null);
+		Test test = new Test();
+		queue.offer(test);
+		queue.offer(new Test());
 		
-		System.out.println(queue.size());
-		System.out.println(queue.remainingCapacity());
+		new Thread()
+		{
+			public void run()
+			{
+				try
+				{
+					queue.offer(new Test(), 99999999, TimeUnit.DAYS);
+				}
+				catch (InterruptedException e)
+				{
+					e.printStackTrace();
+				}
+			}
+		}.start();
 		
-		Iterator<Object> it = queue.iterator();
+		Iterator<Test> it = queue.iterator();
 		while(it.hasNext())
 		{
-			System.out.println(it.next());
+			System.out.println(it.next() + "---");
 		}
-		
-		System.out.println(queue.size());
-		System.out.println(queue.remainingCapacity());
+	}
+	
+	static class Test
+	{
+		public int abc = 12;
 	}
 
 }
