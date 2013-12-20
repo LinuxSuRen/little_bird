@@ -1,12 +1,12 @@
 package org.suren.littlebird;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.SocketAddress;
 
 public class ClientInfo
 {
-	private boolean empty;
-	
 	private Socket socket;
 	private String address;
 	private int port;
@@ -14,7 +14,6 @@ public class ClientInfo
 	
 	public ClientInfo()
 	{
-		empty = true;
 	}
 	
 	public ClientInfo(String address, int port, long connectedTime)
@@ -22,8 +21,6 @@ public class ClientInfo
 		this.address = address;
 		this.port = port;
 		this.connectedTime = connectedTime;
-		
-		empty = false;
 	}
 	
 	public boolean tearDown()
@@ -32,6 +29,7 @@ public class ClientInfo
 		{
 			try
 			{
+				System.out.println(socket + "closed.");
 				socket.close();
 				
 				return true;
@@ -52,6 +50,20 @@ public class ClientInfo
 
 	public void setSocket(Socket socket)
 	{
+		if(socket == null)
+		{
+			return;
+		}
+		
+		SocketAddress socketAddr = socket.getRemoteSocketAddress();
+		if(socketAddr instanceof InetSocketAddress)
+		{
+			InetSocketAddress inetSocketaddr = (InetSocketAddress)
+					socketAddr;
+			
+			this.setAddress(inetSocketaddr.getHostName());
+			this.setPort(inetSocketaddr.getPort());
+		}
 		this.socket = socket;
 	}
 
@@ -83,10 +95,5 @@ public class ClientInfo
 	public void setConnectedTime(long connectedTime)
 	{
 		this.connectedTime = connectedTime;
-	}
-
-	public boolean isEmpty()
-	{
-		return empty;
 	}
 }

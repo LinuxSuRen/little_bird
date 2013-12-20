@@ -7,12 +7,16 @@ import java.awt.event.ActionListener;
 import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
 
+import javax.swing.DefaultListModel;
 import javax.swing.JButton;
+import javax.swing.JList;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 
+import org.suren.littlebird.ArchServerListener;
+import org.suren.littlebird.ClientInfo;
 import org.suren.littlebird.MonitorServer;
 import org.suren.littlebird.SimpleServer;
 import org.suren.littlebird.annotation.Menu;
@@ -28,6 +32,8 @@ public class ScreenServerMenuItem extends ArchMenu
 	private JTextField qualityField = null;
 	private JButton startBut = null;
 	private JButton stopBut = null;
+	private DefaultListModel clientListModel = null;
+	private JList clientList = null;
 	private SimpleServer monitorServer = null;
 	
 	@Action
@@ -60,8 +66,11 @@ public class ScreenServerMenuItem extends ArchMenu
 		JPanel controlPanel = createControlPanel();
 		JPanel logPanel = createLogPanel();
 		
+		JPanel clientListPanel = createClientPanel();
+		
 		panel.add(controlPanel, BorderLayout.NORTH);
 		panel.add(logPanel, BorderLayout.CENTER);
+		panel.add(clientListPanel, BorderLayout.EAST);
 	}
 
 	private JPanel createLogPanel()
@@ -125,6 +134,8 @@ public class ScreenServerMenuItem extends ArchMenu
 					new Thread(monitorServer).start();
 					
 					logger.info("prepare to start mouse server.");
+					
+					monitorServer.setListener(serverListener);
 				}
 				
 				controlStatusCheck();
@@ -136,6 +147,7 @@ public class ScreenServerMenuItem extends ArchMenu
 			@Override
 			public void actionPerformed(ActionEvent e)
 			{
+				System.out.println("monitorServer:"+monitorServer);
 				if(monitorServer == null)
 				{
 					return;
@@ -169,6 +181,39 @@ public class ScreenServerMenuItem extends ArchMenu
 		controlStatusCheck();
 		
 		return controlPanel;
+	}
+	
+	private ArchServerListener serverListener = new ArchServerListener()
+	{
+		
+		@Override
+		public void onLine(ClientInfo clientInfo)
+		{
+			if(clientInfo == null)
+			{
+				return;
+			}
+			
+			clientListModel.addElement(clientInfo.getAddress());
+		}
+		
+		@Override
+		public void offLine(ClientInfo clientInfo)
+		{
+		}
+	};
+
+	private JPanel createClientPanel()
+	{
+		JPanel panel = new JPanel();
+		panel.setLayout(new BorderLayout());
+		
+		clientListModel = new DefaultListModel();
+		clientList = new JList(clientListModel);
+		
+		panel.add(clientList, BorderLayout.CENTER);
+		
+		return panel;
 	}
 	
 	private void qualityChange()
