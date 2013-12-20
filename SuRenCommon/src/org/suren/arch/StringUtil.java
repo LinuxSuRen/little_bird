@@ -64,9 +64,9 @@ public class StringUtil
 	}
 	
 	/**
-	 * 判断字符串是否为空，如果为空则返回指定默认�?
+	 * 判断字符串是否为空，如果为空则返回指定默认值
 	 * @param str
-	 * @param def 默认�?
+	 * @param def 默认值
 	 * @return
 	 */
 	public static String emptyDef(String str, String def)
@@ -80,7 +80,7 @@ public class StringUtil
 	}
 	
 	/**
-	 * 判断是否为空字符串（为null或�?内容为空�?
+	 * 判断是否为空字符串（为null或者内容为空）
 	 * @param str
 	 * @return 为空返回true
 	 */
@@ -92,7 +92,7 @@ public class StringUtil
 	/**
 	 * 判断n个字符串是否为空
 	 * @param strs
-	 * @return 任何�?��字符串为空则返回true
+	 * @return 任何一个字符串为空则返回true
 	 */
 	public static boolean empty(String ...strs)
 	{
@@ -292,6 +292,30 @@ public class StringUtil
 		catch (Exception e)
 		{
 			return "";
+		}
+	}
+	
+	public static int getInt(String str, int def)
+	{
+		try
+		{
+			return Integer.parseInt(str);
+		}
+		catch(NumberFormatException e)
+		{
+			return def;
+		}
+	}
+	
+	public static int getInt(CharSequence charSeq, int def)
+	{
+		if(charSeq != null)
+		{
+			return getInt(charSeq.toString(), def);
+		}
+		else
+		{
+			return def;
 		}
 	}
 }
