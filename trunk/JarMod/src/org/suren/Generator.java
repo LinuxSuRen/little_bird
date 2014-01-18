@@ -1,12 +1,18 @@
+
 package org.suren;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.ObjectOutputStream;
 import java.security.InvalidKeyException;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.Signature;
@@ -14,6 +20,8 @@ import java.security.cert.CertificateException;
 import java.util.Enumeration;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
+
+import org.apache.commons.codec.binary.Base64;
 
 /**
  * @author suren
@@ -33,6 +41,51 @@ public class Generator
 		try
 		{
 			jarFile = new JarFile(path);
+			
+			if(jarFile != null)
+			{
+				JarEntry entry = null;
+				try
+				{
+					entry = jarFile.getJarEntry(META_PATH);
+				}
+				catch (IllegalStateException e)
+				{
+					e.printStackTrace();
+				}
+				
+				InputStream entryStream = null;
+				try
+				{
+					entryStream = jarFile.getInputStream(entry);
+					
+					int len = -1;
+					byte[] b = new byte[1024];
+
+					while ((len = entryStream.read(b)) != -1)
+					{
+						buffer.append(new String(b, 0, len));
+					}
+				}
+				catch (Exception e)
+				{
+					e.printStackTrace();
+				}
+				finally
+				{
+					if(entryStream != null)
+					{
+						try
+						{
+							entryStream.close();
+						}
+						catch (IOException e)
+						{
+							e.printStackTrace();
+						}
+					}
+				}
+			}
 		}
 		catch (IOException e)
 		{
@@ -42,48 +95,17 @@ public class Generator
 		{
 			e.printStackTrace();
 		}
-		
-		if(jarFile != null)
+		finally
 		{
-			JarEntry entry = null;
-			try
+			if(jarFile != null)
 			{
-				entry = jarFile.getJarEntry(META_PATH);
-			}
-			catch (IllegalStateException e)
-			{
-				e.printStackTrace();
-			}
-			
-			InputStream entryStream = null;
-			try
-			{
-				entryStream = jarFile.getInputStream(entry);
-				
-				int len = -1;
-				byte[] b = new byte[1024];
-
-				while ((len = entryStream.read(b)) != -1)
+				try
 				{
-					buffer.append(new String(b, 0, len));
+					jarFile.close();
 				}
-			}
-			catch (Exception e)
-			{
-				e.printStackTrace();
-			}
-			finally
-			{
-				if(entryStream != null)
+				catch (IOException e)
 				{
-					try
-					{
-						entryStream.close();
-					}
-					catch (IOException e)
-					{
-						e.printStackTrace();
-					}
+					e.printStackTrace();
 				}
 			}
 		}
@@ -91,7 +113,14 @@ public class Generator
 		return buffer.toString().hashCode();
 	}
 	
-	public void generateKeyPair()
+	public static void main(String[] args) throws Exception
+	{
+		Generator generator = new Generator();
+		
+		generator.generateKeyPair();
+	}
+	
+	public void generateKeyPair() throws Exception
 	{
 		try
 		{
@@ -101,8 +130,42 @@ public class Generator
 			KeyPair keyPair = keyPairGenerator.generateKeyPair();
 
 			PrivateKey privateKey = keyPair.getPrivate();
-			Signature signature = Signature.getInstance(privateKey.getAlgorithm());
+			Signature signature = Signature.getInstance("SHA1WithRSA");
 			signature.initSign(privateKey);
+			
+			FileInputStream inStream = new FileInputStream(new File("C:/suren/iKVM32.dll"));
+			
+			byte[] buf = new byte[1024];
+			int len = -1;
+			while((len = inStream.read(buf)) != -1)
+			{
+				signature.update(buf, 0, len);
+			}
+			inStream.close();
+			
+			byte[] signArray = signature.sign();
+			
+			Base64 base64 = new Base64();
+			MessageDigest messageDigest = MessageDigest.getInstance("SHA1");
+			messageDigest.update(signArray);
+			signArray = messageDigest.digest();
+			
+			for(byte sign : base64.encode(signArray))
+			{
+				System.out.print((char)(sign & 0xff));
+			}
+			System.out.println();
+			
+			byte[] baseArray = base64.encode(signArray);
+			for(byte base :baseArray)
+			{
+				System.out.print((char)base);
+			}
+			System.out.println();
+			
+			ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(new File("c:/suren/a.dat")));
+			out.write(privateKey.getEncoded());
+			out.close();
 		}
 		catch (NoSuchAlgorithmException e)
 		{
@@ -125,7 +188,6 @@ public class Generator
 			Enumeration<String> aliases = keyStore.aliases();
 			while(aliases.hasMoreElements())
 			{
-				String alias = aliases.nextElement();
 			}
 		}
 		catch (KeyStoreException e)
