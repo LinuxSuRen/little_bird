@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.6"/>
+	<classpathentry kind="lib" path="D:/javassist-3.18.0-GA/javassist.jar" sourcepath="D:/javassist-3.18.0-GA/src/main"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="lib" path="D:/commons-codec-1.9.jar" sourcepath="D:/commons-codec-1.9-sources.jar"/>
+	<classpathentry kind="output" path="bin"/>
+</classpath>
