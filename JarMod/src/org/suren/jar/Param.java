@@ -1,4 +1,4 @@
-package org.suren;
+package org.suren.jar;
 
 /**
  * @author suren
