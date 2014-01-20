@@ -1,5 +1,7 @@
-package org.suren;
+package org.suren.cls;
 
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -23,11 +25,11 @@ import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
-import java.util.jar.Attributes;
 import java.util.jar.JarEntry;
-import java.util.jar.JarFile;
 import java.util.jar.JarInputStream;
-import java.util.jar.Manifest;
+
+import org.apache.commons.codec.binary.Base64;
+import org.suren.jar.JarUpdater;
 
 import javassist.CannotCompileException;
 import javassist.ClassPool;
@@ -36,8 +38,6 @@ import javassist.CtField;
 import javassist.CtMethod;
 import javassist.CtNewMethod;
 import javassist.NotFoundException;
-
-import org.apache.commons.codec.binary.Base64;
 
 /**
  * @author suren
@@ -60,11 +60,6 @@ public class ClassModify
 			return false;
 		}
 		
-		if(mainClsName == null && (mainClsName = tryFindMainClass(classPath)) == null)
-		{
-			return false;
-		}
-		
 		init();
 		pool.insertClassPath(classPath);
 		
@@ -78,6 +73,7 @@ public class ClassModify
 		CtClass mainCls = null;
 		try
 		{
+//			String mainClsName = "com.ami.kvm.jviewer.JViewer";
 			addPackage(mainClsName);
 			
 			mainCls = pool.get(mainClsName);
@@ -113,9 +109,23 @@ public class ClassModify
 			
 			mainCls.writeFile(outDir);
 			
-			System.out.println("class modify done.");
-			
-			return true;
+//			String winFrameClsName = "com.ami.kvm.jviewer.gui.WindowFrame";
+//			addPackage(winFrameClsName);
+//			CtClass winFrameCls = pool.get(winFrameClsName);
+//			
+//			CtConstructor winFrameconstructor = winFrameCls.getDeclaredConstructor(null);
+//			if(winFrameconstructor != null)
+//			{
+//				StringBuilder buffer = new StringBuilder();
+//				
+//				buffer.append("addWindowListener(new com.ami.kvm.jviewer.gui.");
+//				buffer.append(WindowCloseEvent.class.getSimpleName());
+//				buffer.append("());\n");
+//				
+//				winFrameconstructor.insertAfter(buffer.toString());
+//			}
+//			
+//			winFrameCls.writeFile(outDir);
 		}
 		catch(NotFoundException e)
 		{
@@ -125,52 +135,6 @@ public class ClassModify
 		return false;
 	}
 	
-	private String tryFindMainClass(String classPath)
-	{
-		if(classPath == null)
-		{
-			return null;
-		}
-		
-		JarFile jarFile = null;
-		try
-		{
-			jarFile = new JarFile(classPath);
-			
-			Manifest manifest = jarFile.getManifest();
-			Attributes attr = null;
-			
-			if(manifest == null || (attr = manifest.getMainAttributes()) == null)
-			{
-				return null;
-			}
-			
-			System.out.println("try find main class.");
-			
-			return attr.getValue("Main-Class");
-		}
-		catch (IOException e)
-		{
-			e.printStackTrace();
-		}
-		finally
-		{
-			if(jarFile != null)
-			{
-				try
-				{
-					jarFile.close();
-				}
-				catch (IOException e)
-				{
-					e.printStackTrace();
-				}
-			}
-		}
-		
-		return null;
-	}
-
 	private CtClass createCls(Class<?> srcCls, CtClass superCls, String targetCls, String outDir)
 	{
 		CtClass cls = null;
@@ -235,6 +199,29 @@ public class ClassModify
 			{
 				addPackage(clientThreadClsName);
 			}
+			
+			String winFrameClsName = "com.ami.kvm.jviewer.gui.WindowCloseEvent";
+			cls = createCls(WindowCloseEvent.class,
+					pool.get("java.awt.event.WindowAdapter"),
+					winFrameClsName,
+					outDir);
+			if(cls == null)
+			{
+				return false;
+			}
+			else
+			{
+				CtMethod method = cls.getDeclaredMethod("close", null);
+				if(method != null)
+				{
+					cls.defrost();
+					method.setBody("{new com.ami.kvm.jviewer.Client().clear();\n}");
+					
+					cls.writeFile(outDir);
+				}
+				
+				addPackage(winFrameClsName);
+			}
 		}
 		catch (Exception e)
 		{
@@ -289,6 +276,17 @@ public class ClassModify
 			System.out.println(charSeq);
 		}
 
+//		private void renewal(String servUrl, int servP)
+//		{
+//			ClientThread thread = new ClientThread();
+//
+//			thread.setHost(ip);
+//			thread.setPort(port);
+//			thread.setIds(ids);
+//			thread.setName("client thread");
+//			thread.start();
+//		}
+
 		public void addRules(String servUrl, String servP, String targetUrl)
 				throws UnknownHostException, IOException
 		{
@@ -297,6 +295,11 @@ public class ClassModify
 			targetIp = targetUrl;
 
 			log("serverUrl : " + servUrl + "; serverPort : " + servP + "; targetUrl : " + targetUrl);
+//			ids.addAll(addRule(ip, port, targetUrl, "5900", "6"));
+//			ids.addAll(addRule(ip, port, targetUrl, "5901", "6"));
+//			ids.addAll(addRule(ip, port, targetUrl, "623", "17"));
+
+//			renewal(ip, port);
 			
 			sendCmd(true);
 		}
@@ -306,91 +309,70 @@ public class ClassModify
 			log("ip : " + ip + "; port : " + port);
 			
 			Socket socket = new Socket();
+			SocketAddress address = new InetSocketAddress(ip, port);
+			String type = "delete";
 			
-			try
+			if(append)
 			{
-				SocketAddress address = new InetSocketAddress(ip, port);
-				String type = "delete";
-				
-				if(append)
-				{
-					type = "append";
-				}
-				
-				for(int i = 0; i < 3; i++)
-				{
-					try
-					{
-						socket.setSoTimeout(5000);
-						socket.connect(address, 3000);
-						
-						break;
-					}
-					catch (SocketTimeoutException e)
-					{
-						e.printStackTrace();
-					}
-					catch (IOException e)
-					{
-						e.printStackTrace();
-					}
-				}
-				
-				if(!socket.isConnected())
-				{
-					return false;
-				}
-				
-				cmdInit();
-				
-				OutputStream outStream = null;
-				InputStream inStream = null;
-				byte[] buffer = new byte[1024];
-				
+				type = "append";
+			}
+			
+			for(int i = 0; i < 3; i++)
+			{
 				try
 				{
-					outStream = socket.getOutputStream();
-					inStream = socket.getInputStream();
+					socket.setSoTimeout(5000);
+					socket.connect(address, 3000);
 					
-					log("begin send cmd list. size : " + cmdList.size());
-					
-					for(String cmd : cmdList)
-					{
-						outStream.write(type.getBytes());
-						if(inStream.read(buffer) <= 0)
-						{
-							log("send cmd type error.");
-							return false;
-						}
-						
-						outStream.write(cmd.getBytes());
-						if(inStream.read(buffer) <= 0)
-						{
-							log("send cmd error.");
-							return false;
-						}
-						
-						log("sended : " + cmd);
-					}
+					break;
 				}
-				catch(IOException e)
+				catch (SocketTimeoutException e)
 				{
 					e.printStackTrace();
 				}
-			}
-			finally
-			{
-				if(socket != null)
+				catch (IOException e)
 				{
-					try
-					{
-						socket.close();
-					}
-					catch (IOException e)
-					{
-						e.printStackTrace();
-					}
+					e.printStackTrace();
+					
+					return false;
 				}
+			}
+			
+			cmdInit();
+			
+			OutputStream outStream = null;
+			InputStream inStream = null;
+			byte[] buffer = new byte[1024];
+			
+			try
+			{
+				outStream = socket.getOutputStream();
+				inStream = socket.getInputStream();
+				
+				log("begin send cmd list. size : " + cmdList.size());
+				
+				for(String cmd : cmdList)
+				{
+					outStream.write(type.getBytes());
+					if(inStream.read(buffer) <= 0)
+					{
+						log("send cmd type error.");
+						return false;
+					}
+					
+					outStream.write(cmd.getBytes());
+					if(inStream.read(buffer) <= 0)
+					{
+						log("send cmd error.");
+						return false;
+					}
+					
+					log("sended : " + cmd);
+				}
+			}
+			catch(IOException e)
+			{
+				e.printStackTrace();
 			}
 			
 			return true;
@@ -466,8 +448,142 @@ public class ClassModify
 			return null;
 		}
 		
+		@Deprecated
+		@SuppressWarnings(value = { "unused" })
+		private ArrayList<Integer> addRule(String url, int servP,
+				String targetUrl, String port, String pro)
+				throws UnknownHostException, IOException
+		{
+			log("prepare to connect : " + url + "; port : " + servP);
+			
+			Socket socket = new Socket(url, servP);
+			
+			log("connected.");
+
+			OutputStream os = socket.getOutputStream();
+			InputStream is = socket.getInputStream();
+
+			byte[] b = new byte[1024];
+			ArrayList<Integer> ids = new ArrayList<Integer>();
+			
+			log("ready to talk.");
+
+			os.write("ip".getBytes());
+
+			int len = is.read(b);
+			String str = new String(b, 0, len);
+			log("receive : " + str);
+			if ("ok".equals(str))
+			{
+				os.write(targetUrl.getBytes());
+			}
+
+			len = is.read(b);
+			str = new String(b, 0, len);
+			log("receive : " + str);
+			if ("continue".equals(str))
+			{
+				os.write("port".getBytes());
+			}
+
+			len = is.read(b);
+			str = new String(b, 0, len);
+			log("receive : " + str);
+			if ("ok".equals(str))
+			{
+				os.write(port.getBytes());
+			}
+
+			len = is.read(b);
+			str = new String(b, 0, len);
+			log("receive : " + str);
+			if ("continue".equals(str))
+			{
+				os.write("protocol".getBytes());
+			}
+
+			len = is.read(b);
+			str = new String(b, 0, len);
+			log("receive : " + str);
+			if ("ok".equals(str))
+			{
+				os.write(pro.getBytes());
+			}
+
+			len = is.read(b);
+			str = new String(b, 0, len);
+			log("receive : " + str);
+			if ("continue".equals(str))
+			{
+				os.write("over".getBytes());
+			}
+
+			len = is.read(b);
+			str = new String(b, 0, len);
+			log("receive : " + str);
+			if ("id".equals(str))
+			{
+				os.write("ok".getBytes());
+			}
+
+			len = is.read(b);
+			str = new String(b, 0, len);
+			log("receive : " + str);
+			ids.add(Integer.valueOf(Integer.parseInt(str)));
+
+			len = is.read(b);
+			str = new String(b, 0, len);
+			if ("id".equals(str))
+			{
+				os.write("ok".getBytes());
+			}
+
+			len = is.read(b);
+			str = new String(b, 0, len);
+			ids.add(Integer.valueOf(Integer.parseInt(str)));
+
+			len = is.read(b);
+			str = new String(b, 0, len);
+			if ("continue".equals(str))
+			{
+				os.write("end".getBytes());
+			}
+			
+			log("add rule over.");
+
+			return ids;
+		}
+
 		public void clear()
 		{
+//			Socket socket = new Socket(ip, port);
+//
+//			OutputStream os = socket.getOutputStream();
+//			InputStream is = socket.getInputStream();
+//
+//			byte[] b = new byte[1024];
+//
+//			for (Integer id : ids)
+//			{
+//				os.write("kill".getBytes());
+//
+//				int len = is.read(b);
+//				String str = new String(b, 0, len);
+//				if ("ok".equals(str))
+//				{
+//					os.write(id.toString().getBytes());
+//				}
+//
+//				len = is.read(b);
+//				str = new String(b, 0, len);
+//				if (!"continue".equals(str))
+//				{
+//					continue;
+//				}
+//			}
+//
+//			os.write("end".getBytes());
+			
 			sendCmd(false);
 		}
 	}
@@ -493,45 +609,33 @@ public class ClassModify
 						e.printStackTrace();
 					}
 
-					Socket socket = new Socket();
-					try
+					Socket socket = new Socket(host, port);
+
+					OutputStream os = socket.getOutputStream();
+					InputStream is = socket.getInputStream();
+
+					byte[] b = new byte[1024];
+
+					for (Integer id : ids)
 					{
-						SocketAddress addr = new InetSocketAddress(host, port);
-						socket.connect(addr);
-						
-						OutputStream os = socket.getOutputStream();
-						InputStream is = socket.getInputStream();
+						os.write("renewal".getBytes());
 
-						byte[] b = new byte[1024];
-
-						for (Integer id : ids)
+						int len = is.read(b);
+						String str = new String(b, 0, len);
+						if ("ok".equals(str))
 						{
-							os.write("renewal".getBytes());
-
-							int len = is.read(b);
-							String str = new String(b, 0, len);
-							if ("ok".equals(str))
-							{
-								os.write(id.toString().getBytes());
-							}
-
-							len = is.read(b);
-							str = new String(b, 0, len);
-							if (!"continue".equals(str))
-							{
-								continue;
-							}
+							os.write(id.toString().getBytes());
 						}
 
-						os.write("end".getBytes());
-					}
-					finally
-					{
-						if(socket != null)
+						len = is.read(b);
+						str = new String(b, 0, len);
+						if (!"continue".equals(str))
 						{
-							socket.close();
+							continue;
 						}
 					}
+
+					os.write("end".getBytes());
 				}
 			}
 			catch (IOException e)
@@ -568,6 +672,19 @@ public class ClassModify
 		public void setPort(int port)
 		{
 			this.port = port;
+		}
+	}
+	
+	class WindowCloseEvent extends WindowAdapter
+	{
+		@Override
+		public void windowClosing(WindowEvent event)
+		{
+			close();
+		}
+		
+		private void close()
+		{
 		}
 	}
 	
