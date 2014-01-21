@@ -9,6 +9,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -41,7 +42,6 @@ public class JarUpdater
 	public static void main(String[] args) throws Exception
 	{
 		JarUpdater jarUpdater = new JarUpdater();
-		ClassModify clsModify = new ClassModify();
 		
 		Param param = jarUpdater.paramParse(args);
 		if(param == null)
@@ -51,18 +51,35 @@ public class JarUpdater
 			return;
 		}
 		
+		boolean result = jarUpdater.modify(param);
+		
+		if(result)
+		{
+			System.out.println("success");
+		}
+	}
+	
+	public boolean modify(Param param) throws Exception
+	{
+		if(param == null)
+		{
+			return false;
+		}
+		
+		ClassModify clsModify = new ClassModify();
+		
 		String outDir = param.getOutDir();
 		String targetJar = param.getTargetJar();
 		String mainCls = param.getMainCls();
 		
 		int hashCode = new Generator().metaHash(targetJar);
-		File dstFile = jarUpdater.backupTo(targetJar, hashCode);
+		File dstFile = backupTo(targetJar, hashCode);
 		
 		if(dstFile == null)
 		{
 			System.err.println("jar file backup error.");
 			
-			return;
+			return false;
 		}
 		
 		clsModify.modify(targetJar, mainCls, outDir);
@@ -72,9 +89,7 @@ public class JarUpdater
 		{
 			String clsPath = packageName.replace(".", "/") + ".class";
 			
-			jarUpdater.cover(dstFile,
-					new File(outDir, clsPath),
-					clsPath);
+			cover(dstFile, new File(outDir, clsPath), clsPath);
 			
 			new File(clsPath).delete();
 		}
@@ -83,10 +98,12 @@ public class JarUpdater
 		{
 			String clsPath = packageName.replace(".", "/") + ".class";
 			
-			jarUpdater.clean(new File(clsPath).getParent());
+			clean(new File(clsPath).getParent());
 		}
 		
 		System.out.println("result file is : " + dstFile.getName());
+		
+		return true;
 	}
 	
 	private Param paramParse(String[] args)
@@ -95,16 +112,13 @@ public class JarUpdater
 		
 		if(args != null)
 		{
-			if(args.length < 3)
-			{
-				return param;
-			}
+			String[] paramArray = Arrays.copyOf(args, 3);
 			
 			param = new Param();
 			
-			param.setOutDir(args[0]);
-			param.setTargetJar(args[1]);
-			param.setMainCls(args[2]);
+			param.setOutDir(paramArray[0]);
+			param.setTargetJar(paramArray[1]);
+			param.setMainCls(paramArray[2]);
 		}
 		
 		return param;
