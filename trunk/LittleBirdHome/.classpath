@@ -2,6 +2,16 @@
 <classpath>
 	<classpathentry kind="src" path="src"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/LittleBird"/>
-	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER">
+		<attributes>
+			<attribute name="org.eclipse.jdt.launching.CLASSPATH_ATTR_LIBRARY_PATH_ENTRY" value="C:/Windows"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="libs/opencv-247.jar">
+		<attributes>
+			<attribute name="org.eclipse.jdt.launching.CLASSPATH_ATTR_LIBRARY_PATH_ENTRY" value="LittleBirdHome/libs"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="libs/jsch-0.1.50.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
