@@ -29,6 +29,7 @@ import java.util.Map;
 
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
+import javax.swing.JComponent;
 import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -45,6 +46,11 @@ import org.opencv.objdetect.CascadeClassifier;
 import org.suren.littlebird.annotation.Menu;
 import org.suren.littlebird.annotation.Menu.Action;
 import org.suren.littlebird.gui.MainFrame;
+import org.suren.littlebird.net.ssh.SimpleUserInfo;
+
+import com.jcraft.jsch.JSch;
+import com.jcraft.jsch.Session;
+import com.jcraft.jsch.UserInfo;
 
 @Menu(displayName = "FaceDetect", parentMenu = ImageMenu.class, index = 0)
 public class FaceDetectMenuItem extends ArchMenu
@@ -229,7 +235,22 @@ public class FaceDetectMenuItem extends ArchMenu
 			@Override
 			public void actionPerformed(ActionEvent e)
 			{
-				splitPane.setDividerLocation(0.5);
+//				splitPane.setDividerLocation(0.5);
+
+				JSch jsch = new JSch();
+				try
+				{
+					Session session = jsch.getSession("root", "10.0.31.249", 22);
+					
+					UserInfo userInfo = new SimpleUserInfo(null);
+					session.setUserInfo(userInfo);
+//					session.setPassword("sugon123");
+					session.connect();
+				}
+				catch (Exception e1)
+				{
+					e1.printStackTrace();
+				}
 			}
 		});
 	}
