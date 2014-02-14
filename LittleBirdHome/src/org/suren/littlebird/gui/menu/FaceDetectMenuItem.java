@@ -235,29 +235,22 @@ public class FaceDetectMenuItem extends ArchMenu
 			@Override
 			public void actionPerformed(ActionEvent e)
 			{
-//				splitPane.setDividerLocation(0.5);
-
-				JSch jsch = new JSch();
-				try
-				{
-					Session session = jsch.getSession("root", "10.0.31.249", 22);
-					
-					UserInfo userInfo = new SimpleUserInfo(null);
-					session.setUserInfo(userInfo);
-//					session.setPassword("sugon123");
-					session.connect();
-				}
-				catch (Exception e1)
-				{
-					e1.printStackTrace();
-				}
+				splitPane.setDividerLocation(0.5);
 			}
 		});
 	}
 	
 	private File faceDetect()
 	{
-		System.loadLibrary(Core.NATIVE_LIBRARY_NAME + "_" + System.getProperty("os.arch"));
+		String arch = System.getProperty("os.arch");
+		if(arch.contains("64"))
+		{
+			System.loadLibrary(Core.NATIVE_LIBRARY_NAME + "_64");
+		}
+		else
+		{
+			System.loadLibrary(Core.NATIVE_LIBRARY_NAME + "_32");
+		}
 		
 		ImageIcon icon = orginImage.get(leftLabel);
 		File imageFile = null;
