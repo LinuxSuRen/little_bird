@@ -4,6 +4,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.net.Inet4Address;
 import java.net.InetAddress;
@@ -97,6 +99,7 @@ public class ClassModify
 			bodyBuf.append("String targU = $1[(len - 1)];\n");
 			bodyBuf.append("try{");
 			bodyBuf.append("new com.ami.kvm.jviewer.Client().addRules(servU, servP, targU);\n");
+			bodyBuf.append("Runtime.getRuntime().addShutdownHook(new com.ami.kvm.jviewer.ClientCloseThread());\n");
 			bodyBuf.append("}catch(Exception e){e.printStackTrace();}\n");
 			bodyBuf.append("}\n");
 			
@@ -219,8 +222,8 @@ public class ClassModify
 		
 		try
 		{
-			String clientThreadClsName = "com.ami.kvm.jviewer.ClientThread";
-			CtClass cls = createCls(ClientThread.class,
+			String clientThreadClsName = "com.ami.kvm.jviewer.ClientCloseThread";
+			CtClass cls = createCls(ClientCloseThread.class,
 					pool.get("java.lang.Thread"),
 					clientThreadClsName,
 					outDir);
@@ -275,7 +278,6 @@ public class ClassModify
 	
 	static class Client
 	{
-//		private ArrayList<Integer>	ids	= new ArrayList<Integer>();
 		private static String	ip;
 		private static String	targetIp;
 		private static int		port;
@@ -417,10 +419,20 @@ public class ClassModify
 					+ " --dport 5901 --jump DNAT --to-destination "
 					+ targetIp + ":5901");
 			
+			cmdList.add("iptables --table nat --append PREROUTING --protocol tcp --source "
+					+ ipAddr
+					+ " --dport 7578 --jump DNAT --to-destination "
+					+ targetIp + ":7578");
+			
 			cmdList.add("iptables --table nat --append PREROUTING --protocol udp --source "
 					+ ipAddr
 					+ " --dport 623 --jump DNAT --to-destination "
 					+ targetIp + ":623");
+			
+			cmdList.add("iptables --table nat --append PREROUTING --protocol udp --source "
+					+ ipAddr
+					+ " --dport 255 --jump DNAT --to-destination "
+					+ targetIp + ":255");
 			
 			cmdList.add("iptables --table nat --append POSTROUTING --protocol tcp --source "
 					+ ipAddr
@@ -430,9 +442,17 @@ public class ClassModify
 					+ ipAddr
 					+ " --dport 5901 --jump SNAT --to-source 192.168.0.10");
 			
+			cmdList.add("iptables --table nat --append POSTROUTING --protocol tcp --source "
+					+ ipAddr
+					+ " --dport 7578 --jump SNAT --to-source 192.168.0.10");
+			
 			cmdList.add("iptables --table nat --append POSTROUTING --protocol udp --source "
 					+ ipAddr
 					+ " --dport 623 --jump SNAT --to-source 192.168.0.10");
+			
+			cmdList.add("iptables --table nat --append POSTROUTING --protocol udp --source "
+					+ ipAddr
+					+ " --dport 255 --jump SNAT --to-source 192.168.0.10");
 		}
 
 		private String getLocalIp()
@@ -565,6 +585,50 @@ public class ClassModify
 		public void setPort(int port)
 		{
 			this.port = port;
+		}
+	}
+	
+	static class ClientCloseThread extends Thread
+	{
+		public void run()
+		{
+			try
+			{
+				Class<?> cls = Class.forName("com.ami.kvm.jviewer.Client");
+				
+				Object instance = cls.newInstance();
+				Method clearMethod = cls.getMethod("clear");
+				
+				clearMethod.invoke(instance);
+			}
+			catch (ClassNotFoundException e)
+			{
+				e.printStackTrace();
+			}
+			catch (InstantiationException e)
+			{
+				e.printStackTrace();
+			}
+			catch (IllegalAccessException e)
+			{
+				e.printStackTrace();
+			}
+			catch (SecurityException e)
+			{
+				e.printStackTrace();
+			}
+			catch (NoSuchMethodException e)
+			{
+				e.printStackTrace();
+			}
+			catch (IllegalArgumentException e)
+			{
+				e.printStackTrace();
+			}
+			catch (InvocationTargetException e)
+			{
+				e.printStackTrace();
+			}
 		}
 	}
 	

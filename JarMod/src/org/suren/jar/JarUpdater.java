@@ -110,7 +110,7 @@ public class JarUpdater
 	{
 		Param param = null;
 		
-		if(args != null)
+		if(args != null && args.length >= 2)
 		{
 			String[] paramArray = Arrays.copyOf(args, 3);
 			
