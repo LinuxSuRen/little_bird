@@ -9,8 +9,6 @@ import java.awt.datatransfer.Transferable;
 import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.dnd.DnDConstants;
 import java.awt.dnd.DropTarget;
-import java.awt.dnd.DropTargetContext;
-import java.awt.dnd.DropTargetDragEvent;
 import java.awt.dnd.DropTargetDropEvent;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -22,14 +20,12 @@ import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
-import javax.swing.JComponent;
 import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -42,15 +38,11 @@ import org.opencv.core.MatOfRect;
 import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
 import org.opencv.highgui.Highgui;
+import org.opencv.highgui.VideoCapture;
 import org.opencv.objdetect.CascadeClassifier;
 import org.suren.littlebird.annotation.Menu;
 import org.suren.littlebird.annotation.Menu.Action;
 import org.suren.littlebird.gui.MainFrame;
-import org.suren.littlebird.net.ssh.SimpleUserInfo;
-
-import com.jcraft.jsch.JSch;
-import com.jcraft.jsch.Session;
-import com.jcraft.jsch.UserInfo;
 
 @Menu(displayName = "FaceDetect", parentMenu = ImageMenu.class, index = 0)
 public class FaceDetectMenuItem extends ArchMenu
@@ -201,17 +193,46 @@ public class FaceDetectMenuItem extends ArchMenu
 				}
 			}
 		});
+		
+		nativeLoad();
 	}
 
 	private void createToolBar()
 	{
 		toolBar = new JToolBar();
 		
+		JButton takePicBut = new JButton("Take");
 		detectBut = new JButton("Detect");
 		JButton resizeBut = new JButton("Resize");
-		
+
+		toolBar.add(takePicBut);
 		toolBar.add(detectBut);
 		toolBar.add(resizeBut);
+		
+		takePicBut.addActionListener(new ActionListener()
+		{
+			
+			@Override
+			public void actionPerformed(ActionEvent e)
+			{
+				File file = new File(System.currentTimeMillis() + ".jpg");
+				
+				VideoCapture capture = new VideoCapture();
+				if(!capture.open(0))
+				{
+					return;
+				}
+				
+				Mat image = new Mat();
+				capture.retrieve(image);
+				Highgui.imwrite(file.getAbsolutePath(), image);
+				capture.release();
+				
+				imageChoose(leftLabel, file);
+				
+				file.deleteOnExit();
+			}
+		});
 		
 		detectBut.addActionListener(new ActionListener()
 		{
@@ -240,7 +261,7 @@ public class FaceDetectMenuItem extends ArchMenu
 		});
 	}
 	
-	private File faceDetect()
+	private void nativeLoad()
 	{
 		String arch = System.getProperty("os.arch");
 		if(arch.contains("64"))
@@ -251,7 +272,10 @@ public class FaceDetectMenuItem extends ArchMenu
 		{
 			System.loadLibrary(Core.NATIVE_LIBRARY_NAME + "_32");
 		}
-		
+	}
+	
+	private File faceDetect()
+	{
 		ImageIcon icon = orginImage.get(leftLabel);
 		File imageFile = null;
 		if(icon == null || !(imageFile = new File(icon.getDescription())).isFile())
@@ -263,8 +287,7 @@ public class FaceDetectMenuItem extends ArchMenu
 		Mat dst = src.clone();
 		
 		CascadeClassifier faceDetector =
-				new CascadeClassifier("D:/Work/opencv/sources/data/haarcascades/" +
-						"haarcascade_frontalface_alt2.xml");
+				new CascadeClassifier("c:/suren/haarcascade_eye_tree_eyeglasses.xml");
 		MatOfRect detectRect = new MatOfRect();
 		
 		faceDetector.detectMultiScale(src, detectRect);
@@ -279,8 +302,8 @@ public class FaceDetectMenuItem extends ArchMenu
 
 		try
 		{
-			File file = new File("d:2.jpg");//File.createTempFile("face_detect", "jpg");
-//			file.deleteOnExit();
+			File file = new File("2.jpg");
+			file.deleteOnExit();
 			
 			Highgui.imwrite(file.getAbsolutePath(), dst);
 			

@@ -1,21 +1,16 @@
 package org.suren.littlebird.gui.menu;
 
 import java.awt.BorderLayout;
-import java.awt.Color;
 import java.awt.Component;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.Transferable;
 import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.dnd.DnDConstants;
-import java.awt.dnd.DropTarget;
 import java.awt.dnd.DropTargetDropEvent;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.FocusEvent;
-import java.awt.event.FocusListener;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
-import java.awt.event.KeyListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
@@ -23,21 +18,24 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
 import javax.swing.JButton;
 import javax.swing.JLabel;
+import javax.swing.JMenuItem;
 import javax.swing.JPanel;
 import javax.swing.JPasswordField;
+import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
 import javax.swing.JTabbedPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.JToolBar;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableModel;
 
@@ -49,16 +47,17 @@ import org.suren.littlebird.gui.MainFrame;
 import org.suren.littlebird.net.ssh.SimpleUserInfo;
 
 import com.jcraft.jsch.ChannelSftp;
+import com.jcraft.jsch.ChannelSftp.LsEntry;
 import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
-import com.jcraft.jsch.ChannelSftp.LsEntry;
 import com.jcraft.jsch.SftpException;
 
 @Menu(displayName = "Scp", parentMenu = RemoteMenu.class, index = 0)
 public class ScpMenuItem extends ArchMenu
 {
 	private JTabbedPane panel = null;
+	private JPopupMenu tabPopuMenu = null;
 	private JSch jsch = new JSch();
 	private List<Session> sesssionList = new ArrayList<Session>();
 	
@@ -93,11 +92,54 @@ public class ScpMenuItem extends ArchMenu
 
 	private void init()
 	{
-		TabInfo tab = new TabInfo("test");
+		if(tabPopuMenu != null)
+		{
+			return;
+		}
 		
+		tabPopuMenu = createTabMenu();
+		
+		TabInfo tab = new TabInfo("test");
 		addTab(tab);
+		
+		panel.addMouseListener(new MouseAdapter(){
+
+			@Override
+			public void mouseReleased(MouseEvent e)
+			{
+				int butCode = e.getButton();
+				int index = panel.indexAtLocation(e.getX(), e.getY());
+				if(index == -1)
+				{
+					return;
+				}
+				
+				if(butCode == MouseEvent.BUTTON3)
+				{
+					tabPopuMenu(index, e.getX(), e.getY());
+				}
+			}
+		});
 	}
 	
+	private JPopupMenu createTabMenu()
+	{
+		JPopupMenu menu = new JPopupMenu();
+		
+		JMenuItem closeItem = new JMenuItem("Close");
+		JMenuItem duplicateItem = new JMenuItem("Duplicate");
+		
+		menu.add(closeItem);
+		menu.add(duplicateItem);
+		
+		return menu;
+	}
+
+	protected void tabPopuMenu(int index, int x, int y)
+	{
+		tabPopuMenu.show(panel, x, y);
+	}
+
 	private void addTab(TabInfo tabInfo)
 	{
 		if(tabInfo == null)
