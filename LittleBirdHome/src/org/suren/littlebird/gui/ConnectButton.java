@@ -11,11 +11,21 @@ public class ConnectButton extends JButton
 
 	private static final long	serialVersionUID	= 5407720117168934347L;
 	
+	private boolean connected;
+	private String connectText = "connect";
+	private String disconnectText = "disconnect";
+	
 	private JTextComponent user;
 	private JTextComponent host;
 	private JTextComponent port;
 	private JTextComponent password;
+	
 	private Map<String, Object> data;
+	
+	public ConnectButton()
+	{
+		setConnected(false);
+	}
 	
 	public ConnectButton(String text)
 	{
@@ -68,5 +78,44 @@ public class ConnectButton extends JButton
 		}
 		
 		data.put(key, value);
+	}
+
+	public boolean isConnected()
+	{
+		return connected;
+	}
+
+	public void setConnected(boolean connected)
+	{
+		this.connected = connected;
+		
+		if(connected)
+		{
+			setText(getDisconnectText());
+		}
+		else
+		{
+			setText(getConnectText());
+		}
+	}
+
+	public String getConnectText()
+	{
+		return connectText;
+	}
+
+	public void setConnectText(String connectText)
+	{
+		this.connectText = connectText;
+	}
+
+	public String getDisconnectText()
+	{
+		return disconnectText;
+	}
+
+	public void setDisconnectText(String disconnectText)
+	{
+		this.disconnectText = disconnectText;
 	}
 }

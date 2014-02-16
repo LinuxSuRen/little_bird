@@ -3,6 +3,8 @@ package org.suren.littlebird.gui;
 import java.awt.CardLayout;
 import java.awt.Component;
 import java.awt.Container;
+import java.awt.Dimension;
+import java.awt.Toolkit;
 import java.awt.event.ActionListener;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -49,8 +51,10 @@ public class MainFrame extends JFrame
 		
 		lazyMenu();
 		
+		Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+		
 		this.setTitle("LittleBird");
-		this.setSize(600, 400);
+		this.setSize(screenSize.width / 2, screenSize.height / 2);
 		this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		this.setLocationByPlatform(true);
 	}

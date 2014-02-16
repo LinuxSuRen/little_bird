@@ -2,6 +2,7 @@ package org.suren.littlebird.gui.menu;
 
 import java.awt.BorderLayout;
 import java.awt.Component;
+import java.awt.Toolkit;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.Transferable;
 import java.awt.datatransfer.UnsupportedFlavorException;
@@ -9,6 +10,8 @@ import java.awt.dnd.DnDConstants;
 import java.awt.dnd.DropTargetDropEvent;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
@@ -17,13 +20,17 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.swing.JButton;
-import javax.swing.JLabel;
+import javax.swing.JComboBox;
+import javax.swing.JList;
 import javax.swing.JMenuItem;
 import javax.swing.JPanel;
 import javax.swing.JPasswordField;
@@ -32,19 +39,26 @@ import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
 import javax.swing.JTabbedPane;
 import javax.swing.JTable;
+import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.JToolBar;
-import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
+import javax.swing.ListModel;
+import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableModel;
 
+import org.suren.littlebird.GeneralThread;
 import org.suren.littlebird.annotation.Menu;
 import org.suren.littlebird.annotation.Menu.Action;
 import org.suren.littlebird.gui.ConnectButton;
 import org.suren.littlebird.gui.GeneralDropTarget;
+import org.suren.littlebird.gui.GeneralPanel;
 import org.suren.littlebird.gui.MainFrame;
+import org.suren.littlebird.net.ssh.SimpleSftpProgressMonitor;
 import org.suren.littlebird.net.ssh.SimpleUserInfo;
+
+import sun.reflect.generics.visitor.Reifier;
 
 import com.jcraft.jsch.ChannelSftp;
 import com.jcraft.jsch.ChannelSftp.LsEntry;
@@ -52,6 +66,7 @@ import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
 import com.jcraft.jsch.SftpException;
+import com.sun.org.apache.xalan.internal.xsltc.compiler.sym;
 
 @Menu(displayName = "Scp", parentMenu = RemoteMenu.class, index = 0)
 public class ScpMenuItem extends ArchMenu
@@ -99,8 +114,7 @@ public class ScpMenuItem extends ArchMenu
 		
 		tabPopuMenu = createTabMenu();
 		
-		TabInfo tab = new TabInfo("test");
-		addTab(tab);
+		addTab(new TabInfo());
 		
 		panel.addMouseListener(new MouseAdapter(){
 
@@ -111,7 +125,14 @@ public class ScpMenuItem extends ArchMenu
 				int index = panel.indexAtLocation(e.getX(), e.getY());
 				if(index == -1)
 				{
-					return;
+					if(2 == e.getClickCount())
+					{
+						addTab(new TabInfo());
+					}
+					else
+					{
+						return;
+					}
 				}
 				
 				if(butCode == MouseEvent.BUTTON3)
@@ -124,13 +145,41 @@ public class ScpMenuItem extends ArchMenu
 	
 	private JPopupMenu createTabMenu()
 	{
-		JPopupMenu menu = new JPopupMenu();
+		final JPopupMenu menu = new JPopupMenu();
 		
 		JMenuItem closeItem = new JMenuItem("Close");
 		JMenuItem duplicateItem = new JMenuItem("Duplicate");
 		
 		menu.add(closeItem);
 		menu.add(duplicateItem);
+		
+		duplicateItem.addActionListener(new ActionListener()
+		{
+			
+			@Override
+			public void actionPerformed(ActionEvent e)
+			{
+				JTabbedPane pane;
+				Component selectedComponent;
+				GeneralPanel<TabInfo> generalPanel;
+				Component invoker = menu.getInvoker();
+				if(!(invoker instanceof JTabbedPane))
+				{
+					return;
+				}
+				
+				pane = (JTabbedPane) invoker;
+				selectedComponent = pane.getSelectedComponent();
+				if(!(selectedComponent instanceof GeneralPanel))
+				{
+					return;
+				}
+				
+				generalPanel = (GeneralPanel<TabInfo>) selectedComponent;
+				
+				addTab(generalPanel.getDataObject());
+			}
+		});
 		
 		return menu;
 	}
@@ -147,25 +196,34 @@ public class ScpMenuItem extends ArchMenu
 			return;
 		}
 		
-		JPanel innerPanel = new JPanel();
+		GeneralPanel<TabInfo> innerPanel = new GeneralPanel<TabInfo>();
+		innerPanel.setDataObject(tabInfo);
 		innerPanel.setLayout(new BorderLayout());
 
 		innerPanel.add(createCenterZone(tabInfo), BorderLayout.CENTER);
 		innerPanel.add(createToolBar(tabInfo), BorderLayout.NORTH);
+		innerPanel.add(createLogPanel(tabInfo), BorderLayout.SOUTH);
 		
-		panel.addTab(tabInfo.getTitle(), innerPanel);
+		String title = tabInfo.getTitle();
+		if("".equals(title) || title == null)
+		{
+			title = "suren";
+		}
+		
+		panel.addTab(title, innerPanel);
+		panel.setSelectedComponent(innerPanel);
 	}
 
 	private JToolBar createToolBar(final TabInfo tabInfo)
 	{
-		JToolBar toolBar = new JToolBar();
+		final JToolBar toolBar = new JToolBar();
 		
 		JButton syncBut = new JButton("sync");
 		final JTextField userField = new JTextField(tabInfo.getUser());
-		final JTextField hostField = new JTextField();
+		final JTextField hostField = new JTextField(tabInfo.getHost());
 		final JTextField portField = new JTextField(tabInfo.getPort() + "");
-		final JTextField pwdField = new JPasswordField();
-		final ConnectButton conBut = new ConnectButton("connect");
+		final JTextField pwdField = new JPasswordField(tabInfo.getPassword());
+		final ConnectButton conBut = new ConnectButton();
 		
 		conBut.setUser(userField);
 		conBut.setHost(hostField);
@@ -186,7 +244,6 @@ public class ScpMenuItem extends ArchMenu
 			public void actionPerformed(ActionEvent e)
 			{
 				List<String> localFiles = tabInfo.getLocalFiles();
-				
 				if(localFiles == null || localFiles.size() == 0)
 				{
 					return;
@@ -210,12 +267,12 @@ public class ScpMenuItem extends ArchMenu
 				{
 					File file = new File(path);
 					
+					System.out.println(file.getAbsolutePath());
+					
 					try
 					{
 						FileInputStream inStream = new FileInputStream(file);
-						
-						ftp.put(inStream, file.getName());
-						
+						ftp.put(path, file.getName(), tabInfo.getMonitor());
 						inStream.close();
 					}
 					catch (FileNotFoundException e1)
@@ -240,6 +297,11 @@ public class ScpMenuItem extends ArchMenu
 			@Override
 			public void actionPerformed(ActionEvent e)
 			{
+				if(conBut.isConnected())
+				{
+					return;
+				}
+				
 				Object source = e.getSource();
 				if(!(source instanceof ConnectButton))
 				{
@@ -254,7 +316,7 @@ public class ScpMenuItem extends ArchMenu
 				String pwd = connect.getPassword().getText();
 				
 				Session session = openSession(user, host, port, pwd);
-				if(session != null)
+				if(session != null && session.isConnected())
 				{
 					userField.setEnabled(false);
 					hostField.setEnabled(false);
@@ -263,6 +325,22 @@ public class ScpMenuItem extends ArchMenu
 					
 					tabInfo.setSession(session);
 				}
+				else
+				{
+					return;
+				}
+				
+				if(tabInfo.getTitle() == null || "".equals(tabInfo.getTitle()))
+				{
+					tabInfo.setTitle(host);
+				}
+				
+				tabInfo.setUser(user);
+				tabInfo.setHost(host);
+				tabInfo.setPassword(pwd);
+				conBut.setConnected(true);
+				
+				panel.setTitleAt(panel.getSelectedIndex(), tabInfo.getTitle());
 				
 				try
 				{
@@ -288,6 +366,18 @@ public class ScpMenuItem extends ArchMenu
 		});
 		
 		return toolBar;
+	}
+
+	private Component createLogPanel(TabInfo tabInfo)
+	{
+		JToolBar logBar = new JToolBar();
+		
+		JTextArea logArea = new JTextArea();
+		JScrollPane logScroll = new JScrollPane(logArea);
+		
+		logBar.add(logScroll);
+		
+		return logBar;
 	}
 	
 	protected void remoteFlush(TabInfo tabInfo)
@@ -412,8 +502,7 @@ public class ScpMenuItem extends ArchMenu
 		pane.setDividerLocation((int)((MainFrame.getInstance().getContentPanel().getWidth() - pane.getDividerSize()) * 0.5));
 		
 		JTable localTable = new JTable();
-		JTable remoteTable = new JTable();
-		
+		setTableHeader(localTable, HEAD_PATH, HEAD_SIZE, HEAD_LEVEL);
 		localTable.addKeyListener(new KeyAdapter()
 		{
 
@@ -452,60 +541,10 @@ public class ScpMenuItem extends ArchMenu
 				}
 			}
 		});
-
-		remoteTable.addMouseListener(new MouseAdapter()
-		{
-
-			@Override
-			public void mouseClicked(MouseEvent e)
-			{
-				if(e.getClickCount() != 2)
-				{
-					return;
-				}
-				
-				Object source = e.getSource();
-				if(!(source instanceof JTable))
-				{
-					return;
-				}
-				
-				JTable table = (JTable) source;
-				int row = table.getSelectedRow();
-				if(row < 0 || row >= table.getRowCount())
-				{
-					return;
-				}
-				
-				Object value = table.getValueAt(row, 0);
-				ChannelSftp channel = tabInfo.getFtpChannel();
-				
-				if(channel == null || channel.isClosed())
-				{
-					return;
-				}
-				
-				try
-				{
-					channel.cd(value.toString());
-					
-					remoteFlush(tabInfo);
-				}
-				catch (SftpException e1)
-				{
-					e1.printStackTrace();
-				}
-			}
-		});
-		
-		setTableHeader(localTable, HEAD_PATH, HEAD_SIZE);
-		setTableHeader(remoteTable, HEAD_PATH);
 		
 		JScrollPane localPane = new JScrollPane(localTable);
-		JScrollPane remotePane = new JScrollPane(remoteTable);
-		
-		GeneralDropTarget<JTable> localDropTarget = new GeneralDropTarget<JTable> (){
-			
+		GeneralDropTarget<JTable> localDropTarget = new GeneralDropTarget<JTable>()
+		{
 			private static final long	serialVersionUID	= 8863733190573710775L;
 
 			@Override
@@ -555,14 +594,195 @@ public class ScpMenuItem extends ArchMenu
 		localDropTarget.setTargetObject(localTable);
 		localPane.setDropTarget(localDropTarget);
 		
-		pane.setLeftComponent(localPane);
-		pane.setRightComponent(remotePane);
+		SimpleSftpProgressMonitor<JTable> monitor = new SimpleSftpProgressMonitor<JTable>(){
+			private long maxCount;
+			private long nowCount;
+			private AtomicInteger index;
+			private AtomicBoolean done = new AtomicBoolean(false);
+			private Object lock;
+			
+			@Override
+			public void init(int op, String src, String dest, long max)
+			{
+				JTable target = getTarget();
+				int rowCount = target.getRowCount();
+				
+				maxCount = max;
+				nowCount = 0;
+				index = new AtomicInteger(-1);
+				
+				for(int i = 0; i < rowCount; i++)
+				{
+					Object value = target.getValueAt(i, 0);
+					
+					if(src.equals(value))
+					{
+						index.set(i);
+						break;
+					}
+				}
+				
+				done.set(false);
+				System.out.println(index.get() + "===" + src);
+				lock = new Object();
+				
+				GeneralThread<Integer> generalThrad = new GeneralThread<Integer>("SimpleMonitorLevel"){
+					
+					private JTable target = getTarget();
+
+					@Override
+					public void run()
+					{
+						int row = getData();
+						if(row == -1)
+						{
+							return;
+						}
+						
+						while(!done.get())
+						{
+							synchronized (lock)
+							{
+								try
+								{
+									lock.wait(1000);
+								}
+								catch (InterruptedException e)
+								{
+									e.printStackTrace();
+								}
+								
+								String level = String.valueOf(100.0 * nowCount / maxCount) + "%";
+								System.out.println(level);
+								
+								target.setValueAt(level, row, 2);
+							}
+						}
+						
+						System.out.println("done");
+					}
+				};
+				generalThrad.setData(index.get());
+				generalThrad.start();
+			}
+
+			@Override
+			public boolean count(long count)
+			{
+				synchronized (lock)
+				{
+					nowCount += count;
+					
+					lock.notifyAll();
+				}
+				
+				return true;
+			}
+
+			@Override
+			public void end()
+			{
+				done.set(true);
+				
+				synchronized (lock)
+				{
+					lock.notifyAll();
+				}
+			}
+		};
+		monitor.setTarget(localTable);
+		tabInfo.setMonitor(monitor);
 		
-		tabInfo.setRemoteTable(remoteTable);
+		JPanel rightPanel = createRightPanel(tabInfo);
+		
+		pane.setLeftComponent(localPane);
+		pane.setRightComponent(rightPanel);
 		
 		return pane;
 	}
 	
+	private JPanel createRightPanel(final TabInfo tabInfo)
+	{
+		JPanel rightPanel = new JPanel();
+		rightPanel.setLayout(new BorderLayout());
+		
+		JComboBox hisPath = new JComboBox();
+		hisPath.setEditable(true);
+		
+		String path = tabInfo.getPath();
+		if(path != null)
+		{
+			hisPath.addItem(path);
+		}
+		
+		hisPath.addItemListener(new ItemListener()
+		{
+			
+			@Override
+			public void itemStateChanged(ItemEvent e)
+			{
+				Object item = e.getItem();
+				
+				tabInfo.setPath(item.toString());
+			}
+		});
+		
+		JTable remoteTable = new JTable();
+		setTableHeader(remoteTable, HEAD_PATH);
+		tabInfo.setRemoteTable(remoteTable);
+		remoteTable.addMouseListener(new MouseAdapter()
+		{
+
+			@Override
+			public void mouseClicked(MouseEvent e)
+			{
+				if(e.getClickCount() != 2)
+				{
+					return;
+				}
+				
+				Object source = e.getSource();
+				if(!(source instanceof JTable))
+				{
+					return;
+				}
+				
+				JTable table = (JTable) source;
+				int row = table.getSelectedRow();
+				if(row < 0 || row >= table.getRowCount())
+				{
+					return;
+				}
+				
+				Object value = table.getValueAt(row, 0);
+				ChannelSftp channel = tabInfo.getFtpChannel();
+				
+				if(channel == null || channel.isClosed())
+				{
+					return;
+				}
+				
+				try
+				{
+					channel.cd(value.toString());
+					
+					remoteFlush(tabInfo);
+				}
+				catch (SftpException e1)
+				{
+					e1.printStackTrace();
+				}
+			}
+		});
+		
+		JScrollPane remotePane = new JScrollPane(remoteTable);
+		
+		rightPanel.add(hisPath, BorderLayout.NORTH);
+		rightPanel.add(remotePane, BorderLayout.CENTER);
+		
+		return rightPanel;
+	}
+
 	private void setTableHeader(JTable table, String ... headers)
 	{
 		if(table == null || headers == null)
@@ -588,6 +808,7 @@ public class ScpMenuItem extends ArchMenu
 	{
 		private String title;
 		private String user = "root";
+		private String password;
 		private String host;
 		private int port = 22;
 		private String path = "/root";
@@ -595,6 +816,28 @@ public class ScpMenuItem extends ArchMenu
 		private JTable remoteTable;
 		private Session session;
 		private ChannelSftp ftpChannel;
+		private SimpleSftpProgressMonitor<?> monitor;
+		
+		public TabInfo(){
+			monitor = new SimpleSftpProgressMonitor<Object>(){
+
+				@Override
+				public void init(int op, String src, String dest, long max)
+				{
+				}
+
+				@Override
+				public boolean count(long count)
+				{
+					return true;
+				}
+
+				@Override
+				public void end()
+				{
+				}
+			};
+		}
 		
 		public TabInfo(String title)
 		{
@@ -617,6 +860,16 @@ public class ScpMenuItem extends ArchMenu
 		{
 			this.user = user;
 		}
+		public String getPassword()
+		{
+			return password;
+		}
+
+		public void setPassword(String password)
+		{
+			this.password = password;
+		}
+
 		public String getHost()
 		{
 			return host;
@@ -680,6 +933,16 @@ public class ScpMenuItem extends ArchMenu
 		public void setFtpChannel(ChannelSftp ftpChannel)
 		{
 			this.ftpChannel = ftpChannel;
+		}
+
+		public SimpleSftpProgressMonitor<?> getMonitor()
+		{
+			return monitor;
+		}
+
+		public void setMonitor(SimpleSftpProgressMonitor<?> monitor)
+		{
+			this.monitor = monitor;
 		}
 	}
 }
