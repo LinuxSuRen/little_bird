@@ -51,7 +51,7 @@ public class SimpleUserInfo implements UserInfo, UIKeyboardInteractive
 //		return true;
 
 		Object[] options = { "yes", "no" };
-		int foo = JOptionPane.showOptionDialog(null, arg0, "Warning",
+		int foo = JOptionPane.showOptionDialog(parent, arg0, "Warning",
 				JOptionPane.DEFAULT_OPTION, JOptionPane.WARNING_MESSAGE,
 				null, options, options[0]);
 		return foo == 0;

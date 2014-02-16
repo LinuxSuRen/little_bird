@@ -12,6 +12,6 @@
 			<attribute name="org.eclipse.jdt.launching.CLASSPATH_ATTR_LIBRARY_PATH_ENTRY" value="LittleBirdHome/libs"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry kind="lib" path="libs/jsch-0.1.50.jar"/>
+	<classpathentry kind="lib" path="libs/jsch-0.1.50.jar" sourcepath="C:/Users/Administrator/Desktop/jsch-0.1.50.zip"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
