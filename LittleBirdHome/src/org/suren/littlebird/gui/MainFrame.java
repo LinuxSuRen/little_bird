@@ -4,9 +4,14 @@ import java.awt.CardLayout;
 import java.awt.Component;
 import java.awt.Container;
 import java.awt.Dimension;
+import java.awt.Graphics;
+import java.awt.Image;
 import java.awt.Toolkit;
 import java.awt.event.ActionListener;
+import java.awt.image.ImageObserver;
+import java.awt.image.ImageProducer;
 import java.lang.reflect.Field;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -15,6 +20,7 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicReference;
 
+import javax.swing.ImageIcon;
 import javax.swing.JFrame;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
@@ -22,6 +28,7 @@ import javax.swing.JMenuItem;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 
+import org.suren.littlebird.Launcher;
 import org.suren.littlebird.ResourceLoader;
 import org.suren.littlebird.annotation.Menu;
 import org.suren.littlebird.annotation.Menu.Action;
@@ -53,6 +60,8 @@ public class MainFrame extends JFrame
 		
 		Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
 		
+		URL iconRes = Launcher.class.getResource("/arch.jpg");
+		this.setIconImage(new ImageIcon(iconRes).getImage());
 		this.setTitle("LittleBird");
 		this.setSize(screenSize.width / 2, screenSize.height / 2);
 		this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
