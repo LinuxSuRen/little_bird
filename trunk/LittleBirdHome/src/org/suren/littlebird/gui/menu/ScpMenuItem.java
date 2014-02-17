@@ -22,12 +22,14 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import javax.swing.DefaultRowSorter;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JList;
@@ -43,10 +45,12 @@ import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.JToolBar;
 import javax.swing.ListModel;
+import javax.swing.RowSorter;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableModel;
+import javax.swing.table.TableRowSorter;
 
 import org.suren.littlebird.GeneralThread;
 import org.suren.littlebird.annotation.Menu;
@@ -218,7 +222,7 @@ public class ScpMenuItem extends ArchMenu
 	{
 		final JToolBar toolBar = new JToolBar();
 		
-		JButton syncBut = new JButton("sync");
+		final JButton syncBut = new JButton("sync");
 		final JTextField userField = new JTextField(tabInfo.getUser());
 		final JTextField hostField = new JTextField(tabInfo.getHost());
 		final JTextField portField = new JTextField(tabInfo.getPort() + "");
@@ -243,51 +247,50 @@ public class ScpMenuItem extends ArchMenu
 			@Override
 			public void actionPerformed(ActionEvent e)
 			{
-				List<String> localFiles = tabInfo.getLocalFiles();
-				if(localFiles == null || localFiles.size() == 0)
+				GeneralThread<TabInfo> syncThread = new GeneralThread<TabInfo>("Sync")
 				{
-					return;
-				}
-				
-				Map<String, Object> data = conBut.getData();
-				Object channelObj = null;
-				if(data == null || (channelObj = data.get("channel")) == null
-						|| !(channelObj instanceof ChannelSftp))
-				{
-					return;
-				}
-				
-				ChannelSftp ftp = (ChannelSftp) channelObj;
-				if(ftp.isClosed())
-				{
-					return;
-				}
-				
-				for(String path : localFiles)
-				{
-					File file = new File(path);
+
+					@Override
+					public void run()
+					{
+						syncBut.setEnabled(false);
+						sync();
+						syncBut.setEnabled(true);
+					}
 					
-					System.out.println(file.getAbsolutePath());
-					
-					try
+					private void sync()
 					{
-						FileInputStream inStream = new FileInputStream(file);
-						ftp.put(path, file.getName(), tabInfo.getMonitor());
-						inStream.close();
+						TabInfo tabInfo = getData();
+						List<String> localFiles = tabInfo.getLocalFiles();
+						ChannelSftp ftp = tabInfo.getFtpChannel();
+						
+						if(localFiles == null || localFiles.size() == 0)
+						{
+							return;
+						}
+						
+						if(ftp.isClosed())
+						{
+							return;
+						}
+						
+						for(String path : localFiles)
+						{
+							File file = new File(path);
+							
+							try
+							{
+								ftp.put(path, file.getName(), tabInfo.getMonitor());
+							}
+							catch (SftpException e1)
+							{
+								e1.printStackTrace();
+							}
+						}
 					}
-					catch (FileNotFoundException e1)
-					{
-						e1.printStackTrace();
-					}
-					catch (SftpException e1)
-					{
-						e1.printStackTrace();
-					}
-					catch (IOException e1)
-					{
-						e1.printStackTrace();
-					}
-				}
+				};
+				syncThread.setData(tabInfo);
+				syncThread.start();
 			}
 		});
 		
@@ -367,7 +370,7 @@ public class ScpMenuItem extends ArchMenu
 		
 		return toolBar;
 	}
-
+	
 	private Component createLogPanel(TabInfo tabInfo)
 	{
 		JToolBar logBar = new JToolBar();
@@ -405,6 +408,8 @@ public class ScpMenuItem extends ArchMenu
 		try
 		{
 			Vector list = channel.ls(".");
+			
+			Collections.sort(list);
 			
 			for(int i = 0; i < list.size(); i++)
 			{
@@ -498,10 +503,11 @@ public class ScpMenuItem extends ArchMenu
 	private Component createCenterZone(final TabInfo tabInfo)
 	{
 		JSplitPane pane = new JSplitPane();
-		
+		pane.setOneTouchExpandable(true);
 		pane.setDividerLocation((int)((MainFrame.getInstance().getContentPanel().getWidth() - pane.getDividerSize()) * 0.5));
 		
 		JTable localTable = new JTable();
+		localTable.setAutoCreateRowSorter(true);
 		setTableHeader(localTable, HEAD_PATH, HEAD_SIZE, HEAD_LEVEL);
 		localTable.addKeyListener(new KeyAdapter()
 		{
@@ -623,7 +629,6 @@ public class ScpMenuItem extends ArchMenu
 				}
 				
 				done.set(false);
-				System.out.println(index.get() + "===" + src);
 				lock = new Object();
 				
 				GeneralThread<Integer> generalThrad = new GeneralThread<Integer>("SimpleMonitorLevel"){
@@ -728,6 +733,7 @@ public class ScpMenuItem extends ArchMenu
 		});
 		
 		JTable remoteTable = new JTable();
+		remoteTable.setAutoCreateRowSorter(true);
 		setTableHeader(remoteTable, HEAD_PATH);
 		tabInfo.setRemoteTable(remoteTable);
 		remoteTable.addMouseListener(new MouseAdapter()
