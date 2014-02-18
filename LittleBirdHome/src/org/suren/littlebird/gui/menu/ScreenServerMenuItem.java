@@ -17,12 +17,12 @@ import javax.swing.JTextField;
 
 import org.suren.littlebird.ArchServerListener;
 import org.suren.littlebird.ClientInfo;
-import org.suren.littlebird.MonitorServer;
-import org.suren.littlebird.SimpleServer;
 import org.suren.littlebird.annotation.Menu;
 import org.suren.littlebird.annotation.Menu.Action;
 import org.suren.littlebird.gui.MainFrame;
 import org.suren.littlebird.gui.log.JTextAreaAppender;
+import org.suren.littlebird.server.MonitorServer;
+import org.suren.littlebird.server.SimpleServer;
 
 @Menu(displayName = "ScreenServer", parentMenu = ServerMenu.class, index = 1)
 public class ScreenServerMenuItem extends ArchMenu

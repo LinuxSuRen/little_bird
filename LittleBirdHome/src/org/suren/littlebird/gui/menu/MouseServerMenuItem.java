@@ -11,12 +11,12 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 
-import org.suren.littlebird.MouseServer;
-import org.suren.littlebird.SimpleServer;
 import org.suren.littlebird.annotation.Menu;
 import org.suren.littlebird.annotation.Menu.Action;
 import org.suren.littlebird.gui.MainFrame;
 import org.suren.littlebird.gui.log.JTextAreaAppender;
+import org.suren.littlebird.server.MouseServer;
+import org.suren.littlebird.server.SimpleServer;
 
 @Menu(displayName = "MouseServer", parentMenu = ServerMenu.class, index = 0)
 public class MouseServerMenuItem extends ArchMenu

@@ -57,6 +57,7 @@ public class FaceDetectMenuItem extends ArchMenu
 	private JButton detectBut = null;
 	
 	private Map<JLabel, ImageIcon> orginImage = new HashMap<JLabel, ImageIcon>();
+	private File detectPolicyFile = null;
 	
 	private JFileChooser fileChooser;
 	
@@ -204,10 +205,12 @@ public class FaceDetectMenuItem extends ArchMenu
 		JButton takePicBut = new JButton("Take");
 		detectBut = new JButton("Detect");
 		JButton resizeBut = new JButton("Resize");
+		JButton selectXmlBut = new JButton("Policy");
 
 		toolBar.add(takePicBut);
 		toolBar.add(detectBut);
 		toolBar.add(resizeBut);
+		toolBar.add(selectXmlBut);
 		
 		takePicBut.addActionListener(new ActionListener()
 		{
@@ -259,6 +262,27 @@ public class FaceDetectMenuItem extends ArchMenu
 				splitPane.setDividerLocation(0.5);
 			}
 		});
+		
+		selectXmlBut.addActionListener(new ActionListener()
+		{
+			
+			@Override
+			public void actionPerformed(ActionEvent e)
+			{
+				if(fileChooser.showOpenDialog(null) != JFileChooser.APPROVE_OPTION)
+				{
+					return;
+				}
+				
+				File file = fileChooser.getSelectedFile();
+				if(file == null || file.isDirectory())
+				{
+					return;
+				}
+				
+				detectPolicyFile = file;
+			}
+		});
 	}
 	
 	private void nativeLoad()
@@ -278,7 +302,9 @@ public class FaceDetectMenuItem extends ArchMenu
 	{
 		ImageIcon icon = orginImage.get(leftLabel);
 		File imageFile = null;
-		if(icon == null || !(imageFile = new File(icon.getDescription())).isFile())
+		if(icon == null || !(imageFile = new File(icon.getDescription())).isFile()
+				|| detectPolicyFile == null
+				|| !(detectPolicyFile.exists()))
 		{
 			return null;
 		}
@@ -287,7 +313,7 @@ public class FaceDetectMenuItem extends ArchMenu
 		Mat dst = src.clone();
 		
 		CascadeClassifier faceDetector =
-				new CascadeClassifier("c:/suren/haarcascade_eye_tree_eyeglasses.xml");
+				new CascadeClassifier(detectPolicyFile.getAbsolutePath());
 		MatOfRect detectRect = new MatOfRect();
 		
 		faceDetector.detectMultiScale(src, detectRect);

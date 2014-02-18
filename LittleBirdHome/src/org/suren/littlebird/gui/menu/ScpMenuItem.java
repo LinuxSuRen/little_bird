@@ -2,7 +2,6 @@ package org.suren.littlebird.gui.menu;
 
 import java.awt.BorderLayout;
 import java.awt.Component;
-import java.awt.Toolkit;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.Transferable;
 import java.awt.datatransfer.UnsupportedFlavorException;
@@ -17,22 +16,18 @@ import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
+import java.util.Set;
 import java.util.Vector;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import javax.swing.DefaultRowSorter;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
-import javax.swing.JList;
 import javax.swing.JMenuItem;
 import javax.swing.JPanel;
 import javax.swing.JPasswordField;
@@ -44,25 +39,19 @@ import javax.swing.JTable;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.JToolBar;
-import javax.swing.ListModel;
-import javax.swing.RowSorter;
-import javax.swing.SwingConstants;
-import javax.swing.SwingUtilities;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableModel;
-import javax.swing.table.TableRowSorter;
 
-import org.suren.littlebird.GeneralThread;
 import org.suren.littlebird.annotation.Menu;
 import org.suren.littlebird.annotation.Menu.Action;
 import org.suren.littlebird.gui.ConnectButton;
 import org.suren.littlebird.gui.GeneralDropTarget;
 import org.suren.littlebird.gui.GeneralPanel;
 import org.suren.littlebird.gui.MainFrame;
+import org.suren.littlebird.net.HomeScp;
 import org.suren.littlebird.net.ssh.SimpleSftpProgressMonitor;
 import org.suren.littlebird.net.ssh.SimpleUserInfo;
-
-import sun.reflect.generics.visitor.Reifier;
+import org.suren.littlebird.thread.GeneralThread;
 
 import com.jcraft.jsch.ChannelSftp;
 import com.jcraft.jsch.ChannelSftp.LsEntry;
@@ -70,13 +59,13 @@ import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
 import com.jcraft.jsch.SftpException;
-import com.sun.org.apache.xalan.internal.xsltc.compiler.sym;
 
 @Menu(displayName = "Scp", parentMenu = RemoteMenu.class, index = 0)
 public class ScpMenuItem extends ArchMenu
 {
 	private JTabbedPane panel = null;
 	private JPopupMenu tabPopuMenu = null;
+	private JPopupMenu localPopupMenu = null;
 	private JSch jsch = new JSch();
 	private List<Session> sesssionList = new ArrayList<Session>();
 	
@@ -509,6 +498,7 @@ public class ScpMenuItem extends ArchMenu
 		JTable localTable = new JTable();
 		localTable.setAutoCreateRowSorter(true);
 		setTableHeader(localTable, HEAD_PATH, HEAD_SIZE, HEAD_LEVEL);
+		localPopupMenu = createLocalPopupMenu(tabInfo);
 		localTable.addKeyListener(new KeyAdapter()
 		{
 
@@ -525,28 +515,47 @@ public class ScpMenuItem extends ArchMenu
 				if(code == KeyEvent.VK_DELETE)
 				{
 					JTable table = (JTable) source;
-					int row = table.getSelectedRow();
-					if(row < 0 || row >= table.getRowCount())
+					int[] rows = table.getSelectedRows();
+					TableModel tbModel = table.getModel();
+					DefaultTableModel model;
+					if(tbModel instanceof DefaultTableModel)
+					{
+						model = (DefaultTableModel) tbModel;
+					}
+					else
 					{
 						return;
 					}
 					
-					TableModel tbModel = table.getModel();
-					if(tbModel instanceof DefaultTableModel)
+					Arrays.sort(rows);
+					
+					for(int i = rows.length - 1; i >= 0; i--)
 					{
-						DefaultTableModel model = (DefaultTableModel) tbModel;
+						int row = rows[i];
 						
-						if(row > 0)
-						{
-							table.setEditingRow(row - 1);
-							table.getSelectionModel().setSelectionInterval(row - 1, row - 1);
-						}
 						tabInfo.getLocalFiles().remove(model.getValueAt(row, 0));
 						model.removeRow(row);
 					}
 				}
 			}
 		});
+		localTable.addMouseListener(new MouseAdapter(){
+
+			@Override
+			public void mouseReleased(MouseEvent e)
+			{
+				int buttonCode = e.getButton();
+				Object source = e.getSource();
+				
+				if(MouseEvent.BUTTON3 == buttonCode
+						&& source instanceof JTable)
+				{
+					localPopupMenu.show((JTable) source, e.getX(), e.getY());
+				}
+			}
+		});
+		
+		preLoadFiles(localTable, tabInfo);
 		
 		JScrollPane localPane = new JScrollPane(localTable);
 		GeneralDropTarget<JTable> localDropTarget = new GeneralDropTarget<JTable>()
@@ -706,12 +715,72 @@ public class ScpMenuItem extends ArchMenu
 		return pane;
 	}
 	
+	private JPopupMenu createLocalPopupMenu(final TabInfo tabInfo)
+	{
+		localPopupMenu = new JPopupMenu("Local");
+		
+		JMenuItem pullFiles = new JMenuItem("pull");
+		
+		localPopupMenu.add(pullFiles);
+		
+		
+		pullFiles.addActionListener(new ActionListener()
+		{
+			
+			@Override
+			public void actionPerformed(ActionEvent e)
+			{
+				Object source = e.getSource();
+				JMenuItem item = null;
+				JPopupMenu menu = null;
+				Component invoker = null;
+				if(!(source instanceof JMenuItem))
+				{
+					return;
+				}
+				
+				item = (JMenuItem) source;
+				menu = (JPopupMenu) item.getParent();
+				
+				if(!((invoker = menu.getInvoker()) instanceof JTable))
+				{
+					return;
+				}
+				
+				preLoadFiles((JTable) invoker, tabInfo);
+			}
+		});
+		
+		return localPopupMenu;
+	}
+
+	private void preLoadFiles(JTable localTable, TabInfo tabInfo)
+	{
+		if(localTable == null)
+		{
+			return;
+		}
+		
+		Set<File> localList = HomeScp.tmpPath;
+		for(File file : localList)
+		{
+			Vector<Object> item = new Vector<Object>();
+			
+			item.add(file.getAbsolutePath());
+			item.add(file.length());
+			
+			fillTable(localTable, item);
+			
+			tabInfo.getLocalFiles().add(file.getAbsolutePath());
+		}
+	}
+
 	private JPanel createRightPanel(final TabInfo tabInfo)
 	{
 		JPanel rightPanel = new JPanel();
 		rightPanel.setLayout(new BorderLayout());
 		
-		JComboBox hisPath = new JComboBox();
+		final JComboBox hisPath = new JComboBox();
 		hisPath.setEditable(true);
 		
 		String path = tabInfo.getPath();
@@ -773,6 +842,10 @@ public class ScpMenuItem extends ArchMenu
 					channel.cd(value.toString());
 					
 					remoteFlush(tabInfo);
+					
+					String pwd = channel.pwd();
+					hisPath.setSelectedItem(pwd);
+					hisPath.addItem(pwd);
 				}
 				catch (SftpException e1)
 				{

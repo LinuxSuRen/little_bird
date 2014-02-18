@@ -5,6 +5,7 @@ import javax.swing.UnsupportedLookAndFeelException;
 import org.suren.littlebird.annotation.Menu;
 import org.suren.littlebird.annotation.Publish;
 import org.suren.littlebird.gui.MainFrame;
+import org.suren.littlebird.server.RmiServer;
 
 public class Launcher
 {
@@ -24,6 +25,8 @@ public class Launcher
 		MainFrame main = MainFrame.getInstance();
 		
 		main.setVisible(true);
+		
+		new Thread(new RmiServer()).start();
 	}
 
 	private void init()

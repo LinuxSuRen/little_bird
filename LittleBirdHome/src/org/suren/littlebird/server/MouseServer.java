@@ -1,4 +1,4 @@
-package org.suren.littlebird;
+package org.suren.littlebird.server;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -8,6 +8,8 @@ import java.net.Socket;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
+import org.suren.littlebird.ClientInfo;
+import org.suren.littlebird.Mouse;
 import org.suren.littlebird.Mouse.ClickType;
 
 public class MouseServer extends SimpleServer

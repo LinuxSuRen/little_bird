@@ -1,4 +1,4 @@
-package org.suren.littlebird;
+package org.suren.littlebird.server;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -13,6 +13,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.suren.littlebird.ArchServerListener;
+import org.suren.littlebird.ClientInfo;
 import org.suren.littlebird.log.ArchLogger;
 
 public abstract class SimpleServer implements ArchServer
