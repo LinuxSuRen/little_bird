@@ -1,4 +1,4 @@
-package org.suren.littlebird;
+package org.suren.littlebird.thread;
 
 import java.util.Map;
 

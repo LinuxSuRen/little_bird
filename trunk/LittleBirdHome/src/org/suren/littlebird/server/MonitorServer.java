@@ -1,4 +1,4 @@
-package org.suren.littlebird;
+package org.suren.littlebird.server;
 
 import java.awt.AWTException;
 import java.awt.Color;
@@ -23,6 +23,8 @@ import java.net.SocketAddress;
 import java.net.SocketTimeoutException;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.TimeUnit;
+
+import org.suren.littlebird.ClientInfo;
 
 import com.sun.image.codec.jpeg.JPEGCodec;
 import com.sun.image.codec.jpeg.JPEGEncodeParam;
