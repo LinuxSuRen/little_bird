@@ -552,6 +552,8 @@ public class ScpMenuItem extends ArchMenu
 				{
 					localPopupMenu.show((JTable) source, e.getX(), e.getY());
 				}
+				
+				System.out.println("=====" + e.getClickCount());
 			}
 		});
 		
@@ -608,6 +610,15 @@ public class ScpMenuItem extends ArchMenu
 		};
 		localDropTarget.setTargetObject(localTable);
 		localPane.setDropTarget(localDropTarget);
+		localPane.addMouseListener(new MouseAdapter()
+		{
+
+			@Override
+			public void mouseReleased(MouseEvent e)
+			{
+				System.out.println("-------------" + e.getClickCount());
+			}
+		});
 		
 		SimpleSftpProgressMonitor<JTable> monitor = new SimpleSftpProgressMonitor<JTable>(){
 			private long maxCount;
@@ -720,13 +731,13 @@ public class ScpMenuItem extends ArchMenu
 		localPopupMenu = new JPopupMenu("Local");
 		
 		JMenuItem pullFiles = new JMenuItem("pull");
+		JMenuItem exploreFiles = new JMenuItem("explore");
 		
 		localPopupMenu.add(pullFiles);
-		
+		localPopupMenu.add(exploreFiles);
 		
 		pullFiles.addActionListener(new ActionListener()
 		{
-			
 			@Override
 			public void actionPerformed(ActionEvent e)
 			{
@@ -748,6 +759,13 @@ public class ScpMenuItem extends ArchMenu
 				}
 				
 				preLoadFiles((JTable) invoker, tabInfo);
+			}
+		});
+		exploreFiles.addActionListener(new ActionListener(){
+
+			@Override
+			public void actionPerformed(ActionEvent e)
+			{
 			}
 		});
 		

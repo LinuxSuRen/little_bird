@@ -2,54 +2,83 @@ package org.suren.maven.plugin;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 
-import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
-import org.apache.maven.project.MavenProject;
 
 @Mojo(name = "auto_exec")
-public class AutoExec extends AbstractMojo
+public class AutoExec extends SuRenMojo
 {
+	private final String TRUE = "true";
+	private final String FALSE = "false";
+
 	@Parameter(property = "cmdList", required = true)
 	private String cmdList;
-	@Parameter(property = "project")
-	private MavenProject project;
-	
+	@Parameter(defaultValue = FALSE)
+	private String async;
+	@Parameter(defaultValue = TRUE)
+	private String print;
+	@Parameter(defaultValue = "GBK")
+	private String sourceCharset;
+	@Parameter(defaultValue = "UTF-8")
+	private String targetCharset;
+
 	private Log log;
 
 	public void execute() throws MojoExecutionException, MojoFailureException
 	{
 		log = getLog();
-		
+
 		log.info("cmdList : " + cmdList);
-		
-		String[] cmdArray = cmdList.split(",");
-		for(String cmd : cmdArray)
+
+		if(FALSE.equals(getAsync()))
 		{
-			exeCmd(cmd);
+			run.run();
+		}
+		else if(TRUE.equals(getAsync()))
+		{
+			new Thread(run, "async run cmd").start();
+		}
+		else
+		{
+			log.warn("invalid async flag.");
 		}
 	}
+
+	private Runnable run = new Runnable()
+	{
+
+		public void run()
+		{
+			String[] cmdArray = cmdList.split(",");
+			for(String cmd : cmdArray)
+			{
+				exeCmd(cmd);
+			}
+		}
+	};
 
 	private void exeCmd(String cmd)
 	{
 		Runtime runtime = Runtime.getRuntime();
-		
+
+		log.info("prepare to exec : " + cmd);
+
 		try
 		{
 			Process process = runtime.exec(cmd);
-			
+
 			InputStream input = process.getInputStream();
-			
+
 			byte[] buf = new byte[1024];
 			int len = -1;
 			while((len = input.read(buf)) != -1)
 			{
-				log.info(new String(buf, 0, len));
+				String msg = new String(buf, 0, len, sourceCharset);
+				log.info(new String(msg.getBytes(targetCharset)));
 			}
 		}
 		catch (IOException e)
@@ -68,13 +97,43 @@ public class AutoExec extends AbstractMojo
 		this.cmdList = cmdList;
 	}
 
-	public MavenProject getProject()
+	public String getAsync()
 	{
-		return project;
+		return async;
 	}
 
-	public void setProject(MavenProject project)
+	public void setAsync(String async)
 	{
-		this.project = project;
+		this.async = async;
+	}
+
+	public String getSourceCharset()
+	{
+		return sourceCharset;
+	}
+
+	public void setSourceCharset(String sourceCharset)
+	{
+		this.sourceCharset = sourceCharset;
+	}
+
+	public String getTargetCharset()
+	{
+		return targetCharset;
+	}
+
+	public void setTargetCharset(String targetCharset)
+	{
+		this.targetCharset = targetCharset;
+	}
+
+	public String getPrint()
+	{
+		return print;
+	}
+
+	public void setPrint(String print)
+	{
+		this.print = print;
 	}
 }
