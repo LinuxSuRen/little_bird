@@ -31,7 +31,7 @@ public class HomeScp extends UnicastRemoteObject implements ScpRmi
 		for(String item : path)
 		{
 			File file = new File(item);
-			
+
 			if(file.isFile() && file.exists())
 			{
 				tmpPath.add(file);
@@ -48,16 +48,14 @@ public class HomeScp extends UnicastRemoteObject implements ScpRmi
 	}
 
 	@Override
-	public boolean push(String address, String remote, String local,
-			boolean async) throws Exception
+	public boolean push(User user, boolean async) throws Exception
 	{
 		return false;
 	}
 
 	@Override
-	public boolean push(String address, String remote, String local)
-			throws Exception
+	public boolean push(User user) throws Exception
 	{
-		return push(address, remote, local, true);
+		return push(user, true);
 	}
 }

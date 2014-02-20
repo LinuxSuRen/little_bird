@@ -6,26 +6,20 @@ import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 
-import org.apache.maven.model.Build;
-import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
-import org.apache.maven.project.MavenProject;
 import org.suren.littlebird.net.ScpRmi;
 
 @Mojo(name = "scp_push")
-public class ScpPush extends AbstractMojo
+public class ScpPush extends SuRenMojo
 {
 	@Parameter(property = "address", defaultValue="127.0.0.1")
 	private String address;
 	@Parameter(property = "port", required = true)
 	private String port;
-
-	@Parameter(property = "project")
-	private MavenProject project;
 
 	private Log log;
 
@@ -35,11 +29,7 @@ public class ScpPush extends AbstractMojo
 	{
 		log = getLog();
 
-		Build build = project.getBuild();
-		String finalName = build.getFinalName();
-		String dir = build.getDirectory();
-
-		File file = new File(dir, finalName + ".jar");
+		File file = getJar();
 
 		log.info("prepare to push jar : " + file.getAbsolutePath());
 
@@ -93,15 +83,5 @@ public class ScpPush extends AbstractMojo
 	public void setPort(String port)
 	{
 		this.port = port;
-	}
-
-	public MavenProject getProject()
-	{
-		return project;
-	}
-
-	public void setProject(MavenProject project)
-	{
-		this.project = project;
 	}
 }

@@ -28,9 +28,16 @@ public class SimpleUserInfo implements UserInfo, UIKeyboardInteractive
 
 	public String getPassword()
 	{
-		System.out.println("getPassword=2==");
-		return JOptionPane.showInputDialog(parent, "Please Input your word", "Type info",
-				JOptionPane.OK_CANCEL_OPTION);
+		
+		if(password == null || "".equals(password))
+		{
+			return JOptionPane.showInputDialog(parent, "Please Input your word", "Type info",
+					JOptionPane.OK_CANCEL_OPTION);
+		}
+		else
+		{
+			return password;
+		}
 	}
 
 	public boolean promptPassphrase(String arg0)
@@ -42,6 +49,7 @@ public class SimpleUserInfo implements UserInfo, UIKeyboardInteractive
 	public boolean promptPassword(String arg0)
 	{
 		System.out.println(arg0 + "=3==");
+		
 		return true;
 	}
 
