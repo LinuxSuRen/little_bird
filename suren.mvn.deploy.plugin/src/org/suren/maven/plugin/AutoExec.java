@@ -12,9 +12,6 @@ import org.apache.maven.plugins.annotations.Parameter;
 @Mojo(name = "auto_exec")
 public class AutoExec extends SuRenMojo
 {
-	private final String TRUE = "true";
-	private final String FALSE = "false";
-
 	@Parameter(property = "cmdList", required = true)
 	private String cmdList;
 	@Parameter(defaultValue = FALSE)
