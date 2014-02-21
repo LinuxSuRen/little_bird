@@ -1,0 +1,74 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<groupId>org.suren.bundle</groupId>
+	<artifactId>bundle-server-plugin</artifactId>
+	<version>0.0.1-SNAPSHOT</version>
+	<packaging>bundle</packaging>
+
+	<name>BundleServer</name>
+	<url>http://maven.apache.org</url>
+
+	<properties>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+	</properties>
+
+	<build>
+		<plugins>
+				<plugin>
+					<groupId>org.apache.felix</groupId>
+					<artifactId>maven-bundle-plugin</artifactId>
+					<version>2.0.0</version>
+					<extensions>true</extensions>
+					<configuration>
+						<instructions>
+							<Bundle-Activator>org.suren.littlebird.activator.SuRenBundleActivator</Bundle-Activator>
+							<Export-Package>org.suren.littlebird.server;version="0.0.1-SNAPSHOT"</Export-Package>
+						</instructions>
+					</configuration>
+				</plugin>
+				<plugin>
+					<groupId>org.suren.maven</groupId>
+					<artifactId>maven-deploy-plugin</artifactId>
+					<version>1.0</version>
+					<executions>
+						<execution>
+							<id>scp_push</id>
+							<phase>install</phase>
+							<goals>
+								<goal>scp_push</goal>
+							</goals>
+							<configuration>
+							</configuration>
+						</execution>
+						<execution>
+							<id>auto_exec</id>
+							<phase>install</phase>
+							<goals>
+								<goal>auto_exec</goal>
+							</goals>
+							<configuration>
+								<cmdList>cmd /c copy ${project.build.directory}\${project.build.finalName}.jar x:\</cmdList>
+							</configuration>
+						</execution>
+					</executions>
+				</plugin>
+		</plugins>
+	</build>
+
+	<dependencies>
+		<dependency>
+			<groupId>org.osgi</groupId>
+			<artifactId>org.osgi.core</artifactId>
+			<version>4.2.0</version>
+		</dependency>
+		<!--
+		<dependency>
+			<groupId>org.apache.cxf</groupId>
+			<artifactId>cxf-core</artifactId>
+			<version>3.0.0-milestone1</version>
+		</dependency>
+		 -->
+	</dependencies>
+</project>
