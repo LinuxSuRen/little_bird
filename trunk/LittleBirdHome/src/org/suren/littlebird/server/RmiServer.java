@@ -51,7 +51,7 @@ public class RmiServer implements ArchServer
 					
 					Naming.rebind("rmi://127.0.0.1:" + port + "/" + cls.getSimpleName(), (Remote) service);
 					
-					System.out.println("publish service : " + cls.getName());
+					System.out.println("publish service : " + cls.getName() + " -- " + service);
 				}
 				catch (InstantiationException e)
 				{
