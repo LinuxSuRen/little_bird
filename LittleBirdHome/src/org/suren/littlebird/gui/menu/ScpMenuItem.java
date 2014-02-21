@@ -915,8 +915,10 @@ public class ScpMenuItem extends ArchMenu
 		private ChannelSftp ftpChannel;
 		private SimpleSftpProgressMonitor<?> monitor;
 		
-		public TabInfo(){
-			monitor = new SimpleSftpProgressMonitor<Object>(){
+		public TabInfo()
+		{
+			monitor = new SimpleSftpProgressMonitor<Object>()
+			{
 
 				@Override
 				public void init(int op, String src, String dest, long max)
