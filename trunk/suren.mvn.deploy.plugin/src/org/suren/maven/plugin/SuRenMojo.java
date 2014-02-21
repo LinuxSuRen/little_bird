@@ -9,6 +9,10 @@ import org.apache.maven.project.MavenProject;
 
 public abstract class SuRenMojo extends AbstractMojo
 {
+	public static final String TRUE = "true";
+	public static final String FALSE = "false";
+
+	protected final String SERVICE = "HomeScp";
 
 	@Parameter(property = "project")
 	private MavenProject project;

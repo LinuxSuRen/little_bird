@@ -11,27 +11,46 @@ import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
+import org.suren.littlebird.net.Scp;
 import org.suren.littlebird.net.ScpRmi;
 
 @Mojo(name = "scp_push")
 public class ScpPush extends SuRenMojo
 {
-	@Parameter(property = "address", defaultValue="127.0.0.1")
+	@Parameter(property = "address", defaultValue = "127.0.0.1")
 	private String address;
-	@Parameter(property = "port", required = true)
+	@Parameter(property = "port", defaultValue = "6600")
 	private String port;
 
-	private Log log;
+	@Parameter
+	private String host;
+	@Parameter
+	private String user;
+	@Parameter
+	private String password;
+	@Parameter
+	private String remotePath;
+	@Parameter(defaultValue = TRUE)
+	private String async;
 
-	private static final String SERVICE = "HomeScp";
+	private Log log;
+	private File jarFile;
 
 	public void execute() throws MojoExecutionException, MojoFailureException
 	{
 		log = getLog();
+		jarFile = getJar();
 
-		File file = getJar();
+		if(!jarFile.isFile())
+		{
+			log.warn("jarFile not exists.");
 
-		log.info("prepare to push jar : " + file.getAbsolutePath());
+			return;
+		}
+
+		String path = jarFile.getAbsolutePath();
+
+		log.info("prepare to push jar : " + path);
 
 		String rmiAddr = "rmi://" + address + ":" + port +"/";
 
@@ -39,9 +58,16 @@ public class ScpPush extends SuRenMojo
 		{
 			ScpRmi scp = (ScpRmi) Naming.lookup(rmiAddr + SERVICE);
 
-			boolean result = scp.push(file.getAbsolutePath());
+			if(isDirectPush(scp))
+			{
+				log.info("direct push done.");
+			}
+			else
+			{
+				boolean result = scp.push(path);
 
-			log.info("scp push result : " + result);
+				log.info("scp push result : " + result);
+			}
 		}
 		catch (MalformedURLException e)
 		{
@@ -65,6 +91,41 @@ public class ScpPush extends SuRenMojo
 		}
 	}
 
+	private boolean isDirectPush(ScpRmi scp)
+	{
+		Scp.User user = new Scp.User();
+
+		if(getHost() == null || getUser() == null ||
+				getPassword() == null || getRemotePath() == null)
+		{
+			return false;
+		}
+
+		user.setHost(getHost());
+		user.setUser(getUser());
+		user.setPassword(getPassword());
+		user.setLocalPath(jarFile.getAbsolutePath());
+		user.setRemotePath(getRemotePath());
+
+		try
+		{
+			if(FALSE.equals(async))
+			{
+				scp.push(user, false);
+			}
+			else
+			{
+				scp.push(user);
+			}
+		}
+		catch (Exception e)
+		{
+			e.printStackTrace();
+		}
+
+		return true;
+	}
+
 	public String getAddress()
 	{
 		return address;
@@ -83,5 +144,55 @@ public class ScpPush extends SuRenMojo
 	public void setPort(String port)
 	{
 		this.port = port;
+	}
+
+	public String getHost()
+	{
+		return host;
+	}
+
+	public void setHost(String host)
+	{
+		this.host = host;
+	}
+
+	public String getUser()
+	{
+		return user;
+	}
+
+	public void setUser(String user)
+	{
+		this.user = user;
+	}
+
+	public String getPassword()
+	{
+		return password;
+	}
+
+	public void setPassword(String password)
+	{
+		this.password = password;
+	}
+
+	public String getRemotePath()
+	{
+		return remotePath;
+	}
+
+	public void setRemotePath(String remotePath)
+	{
+		this.remotePath = remotePath;
+	}
+
+	public String getAsync()
+	{
+		return async;
+	}
+
+	public void setAsync(String async)
+	{
+		this.async = async;
 	}
 }
