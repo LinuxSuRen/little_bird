@@ -1,7 +1,11 @@
 package org.suren.littlebird.server;
 
+import java.io.File;
+import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
@@ -15,15 +19,11 @@ public class DefaultBundleServer  implements BundleServer
 	private final int BundleStart = 0x1;
 	private final int BundleStop = 0x2;
 	private final int BundleUninstall = 0x3;
+	private final int BundleUpdate = 0x4;
 
 	public DefaultBundleServer(BundleContext context)
 	{
 		this.context = context;
-	}
-
-	public String hello()
-	{
-		return "hello osgi";
 	}
 
 	public List<SuRenBundle> getAll()
@@ -45,6 +45,81 @@ public class DefaultBundleServer  implements BundleServer
 		}
 
 		return surenBundles;
+	}
+
+	public List<SuRenBundle> searchBy(String match)
+	{
+		List<SuRenBundle> bundles = getAll();
+		for(int i = 0; i < bundles.size();)
+		{
+			SuRenBundle bundle = bundles.get(i);
+
+			if(!bundle.toString().contains(match))
+			{
+				bundles.remove(i);
+			}
+			else
+			{
+				i++;
+			}
+		}
+
+		return bundles;
+	}
+
+	public List<SuRenBundle> matchBy(String regex)
+	{
+		return matchBy(regex, Pattern.CANON_EQ);
+	}
+
+
+	public List<SuRenBundle> matchBy(String regex, boolean insensitive)
+	{
+		if(insensitive)
+		{
+			return matchBy(regex, Pattern.CASE_INSENSITIVE);
+		}
+		else
+		{
+			return matchBy(regex);
+		}
+	}
+
+	public List<SuRenBundle> matchBy(String regex, int flag)
+	{
+		List<SuRenBundle> bundles = getAll();
+		Pattern pattern = null;
+
+		try
+		{
+			pattern = Pattern.compile(regex, flag);
+		}
+		catch(IllegalArgumentException e)
+		{
+		}
+
+		if(pattern == null)
+		{
+			return bundles;
+		}
+
+		for(int i = 0; i < bundles.size();)
+		{
+			SuRenBundle bundle = bundles.get(i);
+			Matcher matcher = pattern.matcher(bundle.toString());
+			boolean result = matcher.find();
+
+			if(!result)
+			{
+				bundles.remove(i);
+			}
+			else
+			{
+				i++;
+			}
+		}
+
+		return bundles;
 	}
 
 	public SuRenBundle getById(long id)
@@ -73,6 +148,11 @@ public class DefaultBundleServer  implements BundleServer
 		return bundleOperate(BundleStop, ids);
 	}
 
+	public int update(long... ids)
+	{
+		return bundleOperate(BundleUpdate, ids);
+	}
+
 	public int install(String... paths)
 	{
 		int count = 0;
@@ -85,7 +165,12 @@ public class DefaultBundleServer  implements BundleServer
 		{
 			try
 			{
-				context.installBundle(path);
+				File file = new File(path);
+
+				if(file.isFile())
+				{
+					context.installBundle(file.toURL().toExternalForm());
+				}
 
 				count++;
 			}
@@ -93,9 +178,13 @@ public class DefaultBundleServer  implements BundleServer
 			{
 				e.printStackTrace();
 			}
+			catch (MalformedURLException e)
+			{
+				e.printStackTrace();
+			}
 		}
 
-		return 0;
+		return count;
 	}
 
 	public int uninstall(long... ids)
@@ -114,6 +203,10 @@ public class DefaultBundleServer  implements BundleServer
 		for(long id : ids)
 		{
 			Bundle bundle = context.getBundle(id);
+			if(bundle == null)
+			{
+				continue;
+			}
 
 			try
 			{
@@ -128,6 +221,9 @@ public class DefaultBundleServer  implements BundleServer
 					case BundleUninstall:
 						bundle.uninstall();
 						break;
+					case BundleUpdate:
+						bundle.update();
+						break;
 				}
 
 				count++;
@@ -138,6 +234,6 @@ public class DefaultBundleServer  implements BundleServer
 			}
 		}
 
-		return 0;
+		return count;
 	}
 }

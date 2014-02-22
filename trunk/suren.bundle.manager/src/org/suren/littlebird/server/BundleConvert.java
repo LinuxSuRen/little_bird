@@ -14,6 +14,7 @@ public class BundleConvert
 		surenBundle.setId(bundle.getBundleId());
 		surenBundle.setName(bundle.getSymbolicName());
 		surenBundle.setLocation(bundle.getLocation());
+		surenBundle.setVersion(bundle.getVersion().toString());
 		surenBundle.setState(bundle.getState());
 		surenBundle.setLastModified(bundle.getLastModified());
 	}
