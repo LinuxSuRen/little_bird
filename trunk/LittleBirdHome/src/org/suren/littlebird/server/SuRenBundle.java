@@ -67,4 +67,11 @@ public class SuRenBundle
 	{
 		this.version = version;
 	}
+	@Override
+	public String toString()
+	{
+		return "SuRenBundle [id=" + id + ", name=" + name + ", location="
+				+ location + ", state=" + state + ", lastModified="
+				+ lastModified + ", version=" + version + "]";
+	}
 }
