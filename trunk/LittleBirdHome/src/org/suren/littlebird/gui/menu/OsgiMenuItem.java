@@ -53,6 +53,7 @@ public class OsgiMenuItem extends ArchMenu
 	private final int			Start		= 0x1;
 	private final int			Stop		= 0x2;
 	private final int			Uninstall	= 0x3;
+	private final int			Update		= 0x4;
 
 	private JPanel				panel		= null;
 	
@@ -104,6 +105,7 @@ public class OsgiMenuItem extends ArchMenu
 		final JButton reloadBut = new JButton("Reload");
 		JButton startBut = new JButton("Start");
 		JButton stopBut = new JButton("Stop");
+		JButton updateBut = new JButton("Update");
 		JButton installBut = new JButton("Install");
 		JButton uninstallBut = new JButton("Uninstall");
 		final JComboBox filterBox = new JComboBox();
@@ -114,6 +116,7 @@ public class OsgiMenuItem extends ArchMenu
 		controlBar.add(reloadBut);
 		controlBar.add(startBut);
 		controlBar.add(stopBut);
+		controlBar.add(updateBut);
 		controlBar.add(installBut);
 		controlBar.add(uninstallBut);
 		controlBar.add(filterBox);
@@ -158,6 +161,19 @@ public class OsgiMenuItem extends ArchMenu
 			public void actionPerformed(ActionEvent e)
 			{
 				if(controlOsgiBundle(table, Stop) > 0)
+				{
+					reloadBut.doClick();
+				}
+			}
+		});
+		
+		updateBut.addActionListener(new ActionListener()
+		{
+			
+			@Override
+			public void actionPerformed(ActionEvent e)
+			{
+				if(controlOsgiBundle(table, Update) > 0)
 				{
 					reloadBut.doClick();
 				}
@@ -500,6 +516,9 @@ public class OsgiMenuItem extends ArchMenu
 				break;
 			case Stop:
 				count = server.stop(ids);
+				break;
+			case Update:
+				count = server.update(ids);
 				break;
 			case Uninstall:
 				count = server.uninstall(ids);
