@@ -1,6 +1,8 @@
 package org.suren.littlebird.gui.menu;
 
 import java.awt.BorderLayout;
+import java.awt.Component;
+import java.awt.Container;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
@@ -9,7 +11,8 @@ import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
-import java.util.Arrays;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.Collection;
 import java.util.Enumeration;
 import java.util.HashSet;
@@ -18,7 +21,6 @@ import java.util.Set;
 import java.util.Vector;
 
 import javax.swing.BoxLayout;
-import javax.swing.ButtonGroup;
 import javax.swing.DefaultListModel;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
@@ -26,11 +28,16 @@ import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JPanel;
-import javax.swing.JRadioButton;
 import javax.swing.JScrollPane;
+import javax.swing.JSpinner;
+import javax.swing.JSplitPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.JToolBar;
+import javax.swing.SwingUtilities;
+import javax.swing.plaf.SplitPaneUI;
+import javax.swing.plaf.basic.BasicSplitPaneDivider;
+import javax.swing.plaf.basic.BasicSplitPaneUI;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableModel;
 
@@ -49,6 +56,7 @@ public class OsgiMenuItem extends ArchMenu
 	private final String	HEAD_NAME		= "name";
 	private final String	HEAD_VERSION	= "version";
 	private final String	HEAD_STATE		= "state";
+	private final String	HEAD_VALUE		= "value";
 	
 	private final int			Start		= 0x1;
 	private final int			Stop		= 0x2;
@@ -91,7 +99,8 @@ public class OsgiMenuItem extends ArchMenu
 		
 		setting = new Setting();
 		
-		JTable table = createCenter();
+		JTable table = new JTable();
+		createCenter(table);
 		createToolBar(table);
 	}
 	
@@ -422,7 +431,6 @@ public class OsgiMenuItem extends ArchMenu
 		
 		cancelBut.addActionListener(new ActionListener()
 		{
-			
 			@Override
 			public void actionPerformed(ActionEvent e)
 			{
@@ -474,7 +482,7 @@ public class OsgiMenuItem extends ArchMenu
 		
 		return count;
 	}
-
+	
 	protected int controlOsgiBundle(JTable table, int state)
 	{
 		int count = 0;
@@ -531,17 +539,142 @@ public class OsgiMenuItem extends ArchMenu
 		return count;
 	}
 
-	private JTable createCenter()
+	private JTable createCenter(JTable table)
 	{
-		JTable osgiTable = new JTable();
-		osgiTable.setAutoCreateRowSorter(true);
-		setTableHeader(osgiTable, HEAD_ID, HEAD_NAME, HEAD_VERSION, HEAD_STATE);
+		table.setAutoCreateRowSorter(true);
+		setTableHeader(table, HEAD_ID, HEAD_NAME, HEAD_VERSION, HEAD_STATE);
 		
-		JScrollPane osgiPane = new JScrollPane(osgiTable);
+		final JSplitPane centerPanel = new JSplitPane();
+		centerPanel.setLeftComponent(new JScrollPane(table));
+		centerPanel.setRightComponent(createDetailInfoTable(table));
+		centerPanel.setOneTouchExpandable(true);
 		
-		panel.add(osgiPane, BorderLayout.CENTER);
+		int location = (int) ((MainFrame.getInstance().getContentPanel().getWidth() - centerPanel.getDividerSize()) * 0.8);
+		centerPanel.setDividerLocation(location);
 		
-		return osgiTable;
+		SwingUtilities.invokeLater(new Runnable()
+		{
+			
+			@Override
+			public void run()
+			{
+				JButton divBut = getDividerBut(centerPanel, 1);
+				if(divBut != null)
+				{
+					divBut.doClick();
+				}
+			}
+		});
+		
+		panel.add(centerPanel, BorderLayout.CENTER);
+		
+		return table;
+	}
+	
+	private JButton getDividerBut(JSplitPane splitPane, int index)
+	{
+		JButton splitBut = null;
+		
+		if(splitPane == null)
+		{
+			return splitBut;
+		}
+		
+		SplitPaneUI ui = splitPane.getUI();
+		if(ui instanceof BasicSplitPaneUI)
+		{
+			BasicSplitPaneDivider divider = ((BasicSplitPaneUI) ui).getDivider();
+			
+			try
+			{
+				Component divBut = divider.getComponent(index);
+				if(divBut instanceof JButton)
+				{
+					splitBut = (JButton) divBut;
+				}
+			}
+			catch(ArrayIndexOutOfBoundsException e)
+			{
+				e.printStackTrace();
+			}
+		}
+		
+		return splitBut;
+	}
+
+	private JPanel createDetailInfoTable(JTable table)
+	{
+		final JPanel panel = new JPanel();
+		DefaultTableModel model = new DefaultTableModel();
+		final JTable detailInfoTable = new JTable(model);
+		final JScrollPane detailInfoScroll = new JScrollPane(detailInfoTable);
+		
+		setTableHeader(detailInfoTable, HEAD_NAME, HEAD_VALUE);
+		
+		table.addMouseListener(new MouseAdapter()
+		{
+			private int rowId;
+			private JButton lastBut;
+			
+			@Override
+			public void mouseClicked(MouseEvent e)
+			{
+				int count = e.getClickCount();
+				Object source = e.getSource();
+				
+				if(count == 2 && source instanceof JTable)
+				{
+					JTable table = (JTable) source;
+					int id = table.getSelectedRow();
+					if(id == rowId)
+					{
+						rowId = -1;
+						hideDetail();
+					}
+					else
+					{
+						rowId = id;
+						showDetial();
+					}
+					
+					Vector<Object> data = new Vector<Object>();
+					data.add("hao");
+					data.add("123");
+					
+					fillTable(detailInfoTable, data);
+				}
+			}
+			
+			private void showDetial()
+			{
+				detailControl(0);
+			}
+			
+			private void hideDetail()
+			{
+				detailControl(1);
+			}
+			
+			private void detailControl(int code)
+			{
+				Container parent = panel.getParent();
+				if(parent instanceof JSplitPane)
+				{
+					JButton divBut = getDividerBut((JSplitPane) parent, code);
+					
+					if(divBut != lastBut && divBut != null)
+					{
+						lastBut = divBut;
+						divBut.doClick();
+					}
+				}
+			}
+		});
+		
+		panel.setLayout(new BorderLayout());
+		panel.add(detailInfoScroll, BorderLayout.CENTER);
+		
+		return panel;
 	}
 
 	private void loadOsgiInfo(JTable osgiTable)
