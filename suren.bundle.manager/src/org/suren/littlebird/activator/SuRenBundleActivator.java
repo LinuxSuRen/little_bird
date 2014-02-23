@@ -2,7 +2,7 @@ package org.suren.littlebird.activator;
 
 import java.rmi.registry.Registry;
 import java.util.Dictionary;
-import java.util.Properties;
+import java.util.Hashtable;
 
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
@@ -18,13 +18,18 @@ public class SuRenBundleActivator implements BundleActivator
 	public void start(BundleContext context) throws Exception
 	{
 		BundleServer bundleServer = new DefaultBundleServer(context);
-		Dictionary properties = new Properties();
+		Dictionary<String, String> properties = new Hashtable<String, String>();
 
 		properties.put("osgi.remote.interfaces", "*");
 		properties.put("osgi.remote.configuration.type", "pojo");
-		properties.put("osgi.remote.configuration.pojo.address", "http://localhost:6789/greeter");
+		properties.put("osgi.remote.configuration.pojo.address",
+				"http://localhost:6789/greeter");
 
-		registration = context.registerService(BundleServer.class.getName(), bundleServer, properties );
+		registration = context.registerService(BundleServer.class.getName(),
+				bundleServer,
+				properties );
+		
+		System.out.println("started");
 	}
 
 	public void stop(BundleContext context) throws Exception

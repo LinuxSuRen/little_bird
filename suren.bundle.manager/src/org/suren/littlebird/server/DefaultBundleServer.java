@@ -169,7 +169,7 @@ public class DefaultBundleServer  implements BundleServer
 
 				if(file.isFile())
 				{
-					context.installBundle(file.toURL().toExternalForm());
+					context.installBundle(file.toURI().toURL().toExternalForm());
 				}
 
 				count++;
