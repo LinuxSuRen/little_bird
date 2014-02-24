@@ -13,6 +13,7 @@ import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.text.SimpleDateFormat;
 import java.util.Collection;
 import java.util.Enumeration;
 import java.util.HashSet;
@@ -25,15 +26,16 @@ import javax.swing.DefaultListModel;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
+import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
-import javax.swing.JSpinner;
 import javax.swing.JSplitPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.JToolBar;
+import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
 import javax.swing.plaf.SplitPaneUI;
 import javax.swing.plaf.basic.BasicSplitPaneDivider;
@@ -48,6 +50,8 @@ import org.suren.littlebird.annotation.Menu.Action;
 import org.suren.littlebird.gui.MainFrame;
 import org.suren.littlebird.server.BundleServer;
 import org.suren.littlebird.server.SuRenBundle;
+import org.suren.littlebird.setting.OsgiMgrSetting;
+import org.suren.littlebird.setting.SettingUtil;
 
 @Menu(displayName = "Osgi", parentMenu = RemoteMenu.class, index = 1)
 public class OsgiMenuItem extends ArchMenu
@@ -120,7 +124,27 @@ public class OsgiMenuItem extends ArchMenu
 		final JComboBox filterBox = new JComboBox();
 		JButton settingBut = new JButton("Setting");
 		
+		reloadBut.setMnemonic('r');
+		startBut.setMnemonic('s');
+		stopBut.setMnemonic('t');
+		updateBut.setMnemonic('e');
+		installBut.setMnemonic('i');
+		uninstallBut.setMnemonic('u');
+		settingBut.setMnemonic('g');
 		filterBox.setEditable(true);
+		filterBox.registerKeyboardAction(new ActionListener()
+		{
+			
+			@Override
+			public void actionPerformed(ActionEvent e)
+			{
+				Object source = e.getSource();
+				if(source instanceof JComponent)
+				{
+					((JComponent) source).grabFocus();
+				}
+			}
+		}, KeyStroke.getKeyStroke(KeyEvent.VK_E, KeyEvent.CTRL_DOWN_MASK), JComponent.WHEN_IN_FOCUSED_WINDOW);
 		
 		controlBar.add(reloadBut);
 		controlBar.add(startBut);
@@ -249,7 +273,7 @@ public class OsgiMenuItem extends ArchMenu
 			@Override
 			public void actionPerformed(ActionEvent e)
 			{
-				settingBar.setVisible(true);
+				settingBar.setVisible(!settingBar.isVisible());
 			}
 		});
 		
@@ -282,6 +306,18 @@ public class OsgiMenuItem extends ArchMenu
 //		settingBar.addSeparator();
 		settingBar.add(saveBut);
 		
+		OsgiMgrSetting data = new SettingUtil<OsgiMgrSetting>().load(
+				OsgiMgrSetting.class, "d:/a.xml");
+		
+		if(data != null)
+		{
+			urlField.setText(data.getHost());
+			portField.setText(String.valueOf(data.getPort()));
+			
+			setting.setUrl(data.getHost());
+			setting.setPort(data.getPort());
+		}
+		
 		saveBut.addActionListener(new ActionListener()
 		{
 			
@@ -305,10 +341,27 @@ public class OsgiMenuItem extends ArchMenu
 					return;
 				}
 
-				setting.setUrl(urlField.getText());
+				setting.setUrl(url);
 				setting.setPort(port);
 				
 				settingBar.setVisible(false);
+				
+				save(setting);
+			}
+			
+			private boolean save(Setting setting)
+			{
+				if(setting == null)
+				{
+					return false;
+				}
+				
+				OsgiMgrSetting osgiSetting = new OsgiMgrSetting();
+				osgiSetting.setHost(setting.getUrl());
+				osgiSetting.setPort(setting.getPort());
+				
+				return new SettingUtil<OsgiMgrSetting>().save(OsgiMgrSetting.class,
+						osgiSetting, "d:/a.xml");
 			}
 		});
 		
@@ -637,11 +690,9 @@ public class OsgiMenuItem extends ArchMenu
 						showDetial();
 					}
 					
-					Vector<Object> data = new Vector<Object>();
-					data.add("hao");
-					data.add("123");
+					Object idValue = table.getValueAt(id, 0);
 					
-					fillTable(detailInfoTable, data);
+					getDetailInfo(idValue);
 				}
 			}
 			
@@ -668,6 +719,55 @@ public class OsgiMenuItem extends ArchMenu
 						divBut.doClick();
 					}
 				}
+			}
+			
+			private boolean getDetailInfo(Object idValue)
+			{
+				long id = -1;
+				if(idValue == null)
+				{
+					return false;
+				}
+				
+				try
+				{
+					id = Long.parseLong(idValue.toString());
+				}
+				catch(NumberFormatException e)
+				{
+				}
+				
+				if(id == -1)
+				{
+					return false;
+				}
+				
+				ClientProxyFactoryBean factory = getClientProxy();
+				BundleServer server = (BundleServer) factory.create();
+				
+				SuRenBundle bundle = server.getById(id);
+				Vector<Object>[] data = new Vector[4];
+				
+				SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
+				
+				data[0] = convertToVector("Id:", bundle.getId());
+				data[1] = convertToVector("LastModified:", format.format(bundle.getLastModified()));
+				data[2] = convertToVector("State:", bundle.getState());
+				data[3] = convertToVector("Location:", bundle.getLocation());
+				
+				fillTable(detailInfoTable, true, data);
+				
+				return true;
+			}
+
+			private Vector<Object> convertToVector(Object key, Object value)
+			{
+				Vector<Object> data = new Vector<Object>();
+				
+				data.add(key);
+				data.add(value);
+				
+				return data;
 			}
 		});
 		
@@ -696,17 +796,7 @@ public class OsgiMenuItem extends ArchMenu
 		
 		if(reload)
 		{
-			TableModel tbModel = osgiTable.getModel();
-			if(tbModel instanceof DefaultTableModel)
-			{
-				DefaultTableModel model = (DefaultTableModel) tbModel;
-				
-				int count = model.getRowCount();
-				for(int i = 0; i < count; i++)
-				{
-					model.removeRow(0);
-				}
-			}
+			clearTable(osgiTable);
 		}
 		
 		ClientProxyFactoryBean factory = getClientProxy();
@@ -738,6 +828,26 @@ public class OsgiMenuItem extends ArchMenu
 		main.setTitle(bundles.size() + "==");
 	}
 	
+	private void clearTable(JTable table)
+	{
+		if(table == null)
+		{
+			return;
+		}
+		
+		TableModel tbModel = table.getModel();
+		if(tbModel instanceof DefaultTableModel)
+		{
+			DefaultTableModel model = (DefaultTableModel) tbModel;
+			
+			int count = model.getRowCount();
+			for(int i = 0; i < count; i++)
+			{
+				model.removeRow(0);
+			}
+		}
+	}
+	
 	private ClientProxyFactoryBean getClientProxy()
 	{
 		String url = setting.getUrl() + ":" + setting.getPort() + "/greeter";
@@ -763,9 +873,19 @@ public class OsgiMenuItem extends ArchMenu
 
 	private void fillTable(JTable table, Vector<Object> ... datas)
 	{
+		fillTable(table, false, datas);
+	}
+	
+	private void fillTable(JTable table, boolean reload, Vector<Object> ... datas)
+	{
 		if(table == null || datas == null)
 		{
 			return;
+		}
+		
+		if(reload)
+		{
+			clearTable(table);
 		}
 		
 		TableModel tbModel = table.getModel();
