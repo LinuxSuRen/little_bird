@@ -14,6 +14,7 @@ import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Enumeration;
 import java.util.HashSet;
@@ -22,6 +23,7 @@ import java.util.Set;
 import java.util.Vector;
 
 import javax.swing.BoxLayout;
+import javax.swing.DefaultCellEditor;
 import javax.swing.DefaultListModel;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
@@ -33,6 +35,7 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
 import javax.swing.JTable;
+import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.JToolBar;
 import javax.swing.KeyStroke;
@@ -40,14 +43,18 @@ import javax.swing.SwingUtilities;
 import javax.swing.plaf.SplitPaneUI;
 import javax.swing.plaf.basic.BasicSplitPaneDivider;
 import javax.swing.plaf.basic.BasicSplitPaneUI;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableModel;
 
 import org.apache.cxf.aegis.databinding.AegisDatabinding;
 import org.apache.cxf.frontend.ClientProxyFactoryBean;
 import org.suren.littlebird.annotation.Menu;
 import org.suren.littlebird.annotation.Menu.Action;
+import org.suren.littlebird.gui.FocusAndSelectListener;
 import org.suren.littlebird.gui.MainFrame;
+import org.suren.littlebird.gui.TableCellTextAreaRenderer;
 import org.suren.littlebird.server.BundleServer;
 import org.suren.littlebird.server.SuRenBundle;
 import org.suren.littlebird.setting.OsgiMgrSetting;
@@ -132,19 +139,10 @@ public class OsgiMenuItem extends ArchMenu
 		uninstallBut.setMnemonic('u');
 		settingBut.setMnemonic('g');
 		filterBox.setEditable(true);
-		filterBox.registerKeyboardAction(new ActionListener()
-		{
-			
-			@Override
-			public void actionPerformed(ActionEvent e)
-			{
-				Object source = e.getSource();
-				if(source instanceof JComponent)
-				{
-					((JComponent) source).grabFocus();
-				}
-			}
-		}, KeyStroke.getKeyStroke(KeyEvent.VK_E, KeyEvent.CTRL_DOWN_MASK), JComponent.WHEN_IN_FOCUSED_WINDOW);
+		filterBox.setToolTipText("Ctrl+E");
+		filterBox.registerKeyboardAction(new FocusAndSelectListener(),
+				KeyStroke.getKeyStroke(KeyEvent.VK_E, KeyEvent.CTRL_DOWN_MASK),
+				JComponent.WHEN_IN_FOCUSED_WINDOW);
 		
 		controlBar.add(reloadBut);
 		controlBar.add(startBut);
@@ -380,6 +378,11 @@ public class OsgiMenuItem extends ArchMenu
 		JList remotePathList = new JList(listModel);
 		remotePathList.setVisibleRowCount(5);
 		
+		pathField.setToolTipText("Ctrl+L");
+		pathField.registerKeyboardAction(new FocusAndSelectListener(),
+				KeyStroke.getKeyStroke(KeyEvent.VK_L, KeyEvent.CTRL_DOWN_MASK),
+				JComponent.WHEN_IN_FOCUSED_WINDOW);
+		
 		remote.addItemListener(new ItemListener()
 		{
 			
@@ -595,6 +598,7 @@ public class OsgiMenuItem extends ArchMenu
 	private JTable createCenter(JTable table)
 	{
 		table.setAutoCreateRowSorter(true);
+		table.setAutoResizeMode(JTable.AUTO_RESIZE_LAST_COLUMN);
 		setTableHeader(table, HEAD_ID, HEAD_NAME, HEAD_VERSION, HEAD_STATE);
 		
 		final JSplitPane centerPanel = new JSplitPane();
@@ -663,6 +667,11 @@ public class OsgiMenuItem extends ArchMenu
 		final JScrollPane detailInfoScroll = new JScrollPane(detailInfoTable);
 		
 		setTableHeader(detailInfoTable, HEAD_NAME, HEAD_VALUE);
+		
+		TableCellTextAreaRenderer renderer = new TableCellTextAreaRenderer();
+		renderer.setLineWrap(true);
+		detailInfoTable.getColumnModel().getColumn(1).setCellRenderer(renderer);
+		detailInfoTable.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
 		
 		table.addMouseListener(new MouseAdapter()
 		{
@@ -746,7 +755,7 @@ public class OsgiMenuItem extends ArchMenu
 				BundleServer server = (BundleServer) factory.create();
 				
 				SuRenBundle bundle = server.getById(id);
-				Vector<Object>[] data = new Vector[4];
+				Vector<Object>[] data = new Vector[5];
 				
 				SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
 				
@@ -754,6 +763,12 @@ public class OsgiMenuItem extends ArchMenu
 				data[1] = convertToVector("LastModified:", format.format(bundle.getLastModified()));
 				data[2] = convertToVector("State:", bundle.getState());
 				data[3] = convertToVector("Location:", bundle.getLocation());
+				
+				String headersStr = Arrays.toString(bundle.getHeaders());
+				headersStr = headersStr.replace("], [", "\n");
+				headersStr = headersStr.replace("[[", "");
+				headersStr = headersStr.replace("]]", "");
+				data[4] = convertToVector("Headers:", headersStr);
 				
 				fillTable(detailInfoTable, true, data);
 				
