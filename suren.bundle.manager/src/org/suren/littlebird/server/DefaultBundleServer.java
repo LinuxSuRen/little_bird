@@ -132,7 +132,7 @@ public class DefaultBundleServer  implements BundleServer
 
 		SuRenBundle surenBundle = new SuRenBundle();
 
-		BundleConvert.toSuRen(bundle, surenBundle);
+		BundleConvert.toSuRen(bundle, surenBundle, false);
 
 		return surenBundle;
 	}
