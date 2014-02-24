@@ -1,5 +1,6 @@
 package org.suren.littlebird.server;
 
+
 public class SuRenBundle
 {
 	public static final int	UNINSTALLED				= 0x00000001;
@@ -18,6 +19,8 @@ public class SuRenBundle
 	private int state;
 	private long lastModified;
 	private String version;
+	private BundleHeader[] headers;
+	private ServiceInfo[] serviceRef;
 
 	public long getId()
 	{
@@ -66,6 +69,22 @@ public class SuRenBundle
 	public void setVersion(String version)
 	{
 		this.version = version;
+	}
+	public BundleHeader[] getHeaders()
+	{
+		return headers;
+	}
+	public void setHeaders(BundleHeader[] headers)
+	{
+		this.headers = headers;
+	}
+	public ServiceInfo[] getServiceRef()
+	{
+		return serviceRef;
+	}
+	public void setServiceRef(ServiceInfo[] serviceRef)
+	{
+		this.serviceRef = serviceRef;
 	}
 	@Override
 	public String toString()

@@ -23,7 +23,7 @@ public class SuRenBundleActivator implements BundleActivator
 //		properties.put("osgi.remote.interfaces", "*");
 //		properties.put("osgi.remote.configuration.type", "pojo");
 //		properties.put("osgi.remote.configuration.pojo.address",
-//				"http://localhost:6789/greeter");
+//				"http://localhost:9789/greeter");
 		properties.put("service.exported.interfaces", "*");
 		properties.put("service.exported.intents", "SOAP");
 		properties.put("service.exported.configs", "org.apache.cxf.ws");
