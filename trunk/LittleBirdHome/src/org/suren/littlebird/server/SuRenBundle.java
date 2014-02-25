@@ -1,6 +1,5 @@
 package org.suren.littlebird.server;
 
-
 public class SuRenBundle
 {
 	public static final int	UNINSTALLED				= 0x00000001;
@@ -89,8 +88,8 @@ public class SuRenBundle
 	@Override
 	public String toString()
 	{
-		return "SuRenBundle [id=" + id + ", name=" + name + ", location="
+		return "id=" + id + ", name=" + name + ", location="
 				+ location + ", state=" + state + ", lastModified="
-				+ lastModified + ", version=" + version + "]";
+				+ lastModified + ", version=" + version;
 	}
 }

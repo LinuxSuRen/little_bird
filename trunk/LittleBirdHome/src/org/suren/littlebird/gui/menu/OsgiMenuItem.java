@@ -33,7 +33,6 @@ import javax.swing.JList;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
-import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.JToolBar;
 import javax.swing.KeyStroke;
@@ -50,7 +49,7 @@ import org.suren.littlebird.annotation.Menu;
 import org.suren.littlebird.annotation.Menu.Action;
 import org.suren.littlebird.gui.FocusAndSelectListener;
 import org.suren.littlebird.gui.MainFrame;
-import org.suren.littlebird.gui.TableCellTextAreaRenderer;
+import org.suren.littlebird.gui.SuRenTable;
 import org.suren.littlebird.server.BundleServer;
 import org.suren.littlebird.server.SuRenBundle;
 import org.suren.littlebird.setting.OsgiMgrSetting;
@@ -106,12 +105,12 @@ public class OsgiMenuItem extends ArchMenu
 		
 		setting = new Setting();
 		
-		JTable table = new JTable();
+		SuRenTable table = new SuRenTable();
 		createCenter(table);
 		createToolBar(table);
 	}
 	
-	private void createToolBar(final JTable table)
+	private void createToolBar(final SuRenTable table)
 	{
 		final Set<String> data = new HashSet<String>();
 		final JToolBar controlBar = new JToolBar();
@@ -535,7 +534,7 @@ public class OsgiMenuItem extends ArchMenu
 		return count;
 	}
 	
-	protected int controlOsgiBundle(JTable table, int state)
+	protected int controlOsgiBundle(SuRenTable table, int state)
 	{
 		int count = 0;
 		if(table == null)
@@ -591,10 +590,8 @@ public class OsgiMenuItem extends ArchMenu
 		return count;
 	}
 
-	private JTable createCenter(JTable table)
+	private SuRenTable createCenter(SuRenTable table)
 	{
-		table.setAutoCreateRowSorter(true);
-		table.setAutoResizeMode(JTable.AUTO_RESIZE_LAST_COLUMN);
 		setTableHeader(table, HEAD_ID, HEAD_NAME, HEAD_VERSION, HEAD_STATE);
 		
 		final JSplitPane centerPanel = new JSplitPane();
@@ -655,19 +652,13 @@ public class OsgiMenuItem extends ArchMenu
 		return splitBut;
 	}
 
-	private JPanel createDetailInfoTable(JTable table)
+	private JPanel createDetailInfoTable(SuRenTable table)
 	{
 		final JPanel panel = new JPanel();
-		DefaultTableModel model = new DefaultTableModel();
-		final JTable detailInfoTable = new JTable(model);
+		final SuRenTable detailInfoTable = new SuRenTable();
 		final JScrollPane detailInfoScroll = new JScrollPane(detailInfoTable);
 		
 		setTableHeader(detailInfoTable, HEAD_NAME, HEAD_VALUE);
-		
-		TableCellTextAreaRenderer renderer = new TableCellTextAreaRenderer();
-		renderer.setLineWrap(true);
-		detailInfoTable.getColumnModel().getColumn(1).setCellRenderer(renderer);
-		detailInfoTable.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
 		
 		table.addMouseListener(new MouseAdapter()
 		{
@@ -680,9 +671,9 @@ public class OsgiMenuItem extends ArchMenu
 				int count = e.getClickCount();
 				Object source = e.getSource();
 				
-				if(count == 2 && source instanceof JTable)
+				if(count == 2 && source instanceof SuRenTable)
 				{
-					JTable table = (JTable) source;
+					SuRenTable table = (SuRenTable) source;
 					int id = table.getSelectedRow();
 					if(id == rowId)
 					{
@@ -695,8 +686,7 @@ public class OsgiMenuItem extends ArchMenu
 						showDetial();
 					}
 					
-					Object idValue = table.getValueAt(id, 0);
-					
+					Object idValue = table.getValueAt(id, HEAD_ID);
 					getDetailInfo(idValue);
 				}
 			}
@@ -761,10 +751,10 @@ public class OsgiMenuItem extends ArchMenu
 				data[3] = convertToVector("Location:", bundle.getLocation());
 				
 				String headersStr = Arrays.toString(bundle.getHeaders());
-				headersStr = headersStr.replace("], [", "\n");
-				headersStr = headersStr.replace("[[", "");
-				headersStr = headersStr.replace("]]", "");
-				data[4] = convertToVector("Headers:", headersStr);
+				headersStr = headersStr.replace(";, ", "<br/>");
+				headersStr = headersStr.replace("[", "");
+				headersStr = headersStr.replace("]", "");
+				data[4] = convertToVector("Headers:", "<html>" + headersStr + "</html>");
 				
 				fillTable(detailInfoTable, true, data);
 				
@@ -788,17 +778,17 @@ public class OsgiMenuItem extends ArchMenu
 		return panel;
 	}
 
-	private void loadOsgiInfo(JTable osgiTable)
+	private void loadOsgiInfo(SuRenTable osgiTable)
 	{
 		loadOsgiInfo(osgiTable, null);
 	}
 	
-	private void loadOsgiInfo(JTable osgiTable, String filterStr)
+	private void loadOsgiInfo(SuRenTable osgiTable, String filterStr)
 	{
 		loadOsgiInfo(osgiTable, filterStr, true);
 	}
 	
-	private void loadOsgiInfo(JTable osgiTable, String filterStr, boolean reload)
+	private void loadOsgiInfo(SuRenTable osgiTable, String filterStr, boolean reload)
 	{
 		if(osgiTable == null)
 		{
@@ -823,23 +813,41 @@ public class OsgiMenuItem extends ArchMenu
 			bundles = server.getAll();
 		}
 		
+		int installedCount = 0;
+		int activeCount = 0;
+		
 		for(SuRenBundle bundle : bundles)
 		{
 			Vector<Object> item = new Vector<Object>();
 			
+			int state = bundle.getState();
+			
 			item.add(bundle.getId());
 			item.add(bundle.getName());
 			item.add(bundle.getVersion());
-			item.add(getDisplay(bundle.getState()));
+			item.add(getDisplay(state));
 			
 			fillTable(osgiTable, item);
+			
+			switch(state)
+			{
+				case SuRenBundle.INSTALLED:
+					installedCount++;
+					break;
+				case SuRenBundle.ACTIVE:
+					activeCount++;
+					break;
+			}
 		}
 		
 		MainFrame main = MainFrame.getInstance();
-		main.setTitle(bundles.size() + "==");
+		main.setTitle("BundleInfo: ",
+				bundles.size(), " in total, ",
+				activeCount, " in active, ",
+				installedCount, " in installed");
 	}
 	
-	private void clearTable(JTable table)
+	private void clearTable(SuRenTable table)
 	{
 		if(table == null)
 		{
@@ -882,12 +890,12 @@ public class OsgiMenuItem extends ArchMenu
 		return factory;
 	}
 
-	private void fillTable(JTable table, Vector<Object> ... datas)
+	private void fillTable(SuRenTable table, Vector<Object> ... datas)
 	{
 		fillTable(table, false, datas);
 	}
 	
-	private void fillTable(JTable table, boolean reload, Vector<Object> ... datas)
+	private void fillTable(SuRenTable table, boolean reload, Vector<Object> ... datas)
 	{
 		if(table == null || datas == null)
 		{
@@ -911,25 +919,14 @@ public class OsgiMenuItem extends ArchMenu
 		}
 	}
 
-	private void setTableHeader(JTable osgiTable, String ... headers)
+	private void setTableHeader(SuRenTable osgiTable, String ... headers)
 	{
 		if(osgiTable == null || headers == null)
 		{
 			return;
 		}
 		
-		DefaultTableModel model = new DefaultTableModel(headers, 0){
-
-			private static final long	serialVersionUID	= 4652694928615773932L;
-
-			@Override
-			public boolean isCellEditable(int row, int column)
-			{
-				return false;
-			}
-		};
-		
-		osgiTable.setModel(model);
+		osgiTable.setHeaders(headers);
 	}
 	
 	private String getDisplay(int code)

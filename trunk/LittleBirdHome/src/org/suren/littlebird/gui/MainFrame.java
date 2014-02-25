@@ -4,12 +4,8 @@ import java.awt.CardLayout;
 import java.awt.Component;
 import java.awt.Container;
 import java.awt.Dimension;
-import java.awt.Graphics;
-import java.awt.Image;
 import java.awt.Toolkit;
 import java.awt.event.ActionListener;
-import java.awt.image.ImageObserver;
-import java.awt.image.ImageProducer;
 import java.lang.reflect.Field;
 import java.net.URL;
 import java.util.ArrayList;
@@ -45,6 +41,7 @@ public class MainFrame extends JFrame
 			new AtomicReference<CardLayout>(new CardLayout());
 	private ArchLogger logger = ArchLogger.getInstance();
 	private ConsoleAppender appender = new ConsoleAppender();
+	private String title;
 
 	private MainFrame()
 	{
@@ -55,6 +52,8 @@ public class MainFrame extends JFrame
 		contentPanel.set(panel);
 		
 		this.add(panel);
+		title = "LittleBird";
+		setTitle("");
 		
 		lazyMenu();
 		
@@ -62,7 +61,6 @@ public class MainFrame extends JFrame
 		
 		URL iconRes = Launcher.class.getResource("/arch.jpg");
 		this.setIconImage(new ImageIcon(iconRes).getImage());
-		this.setTitle("LittleBird");
 		this.setSize(screenSize.width / 2, screenSize.height / 2);
 		this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		this.setLocationByPlatform(true);
@@ -331,5 +329,34 @@ public class MainFrame extends JFrame
 	{
 		mainFrame.validate();
 		mainFrame.repaint();
+	}
+
+	@Override
+	public void setTitle(String title)
+	{
+		if(title == null || "".equals(title))
+		{
+			super.setTitle(this.title);
+		}
+		else
+		{
+			super.setTitle(this.title + " -- " + title);
+		}
+	}
+	
+	public void setTitle(Object ... titles)
+	{
+		if(titles == null)
+		{
+			return;
+		}
+		
+		StringBuffer buffer = new StringBuffer();
+		for(Object title : titles)
+		{
+			buffer.append(title);
+		}
+		
+		setTitle(buffer.toString());
 	}
 }
