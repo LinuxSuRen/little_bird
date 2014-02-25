@@ -21,4 +21,9 @@ public class BundleHeader
 	{
 		this.value = value;
 	}
+	@Override
+	public String toString()
+	{
+		return key + ": " +  value + ";";
+	}
 }
