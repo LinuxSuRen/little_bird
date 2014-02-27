@@ -25,7 +25,6 @@ import javax.swing.JCheckBox;
 import javax.swing.JFileChooser;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
-import javax.swing.JTable;
 import javax.swing.JToolBar;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableModel;
@@ -33,12 +32,21 @@ import javax.swing.table.TableModel;
 import org.suren.littlebird.annotation.Menu;
 import org.suren.littlebird.annotation.Menu.Action;
 import org.suren.littlebird.gui.MainFrame;
+import org.suren.littlebird.gui.SuRenTable;
+import org.suren.littlebird.gui.SuRenTableModel;
 import org.suren.littlebird.security.DigestServer;
 import org.suren.littlebird.security.DigestTask;
 
 @Menu(displayName = "Digest", parentMenu = SecurityMenu.class, index = 0)
 public class DigestMenuItem extends ArchMenu
 {
+	private final String HEAD_PATH = "path";
+	private final String HEAD_SIZE = "size";
+	private final String HEAD_TYPE = "type";
+	private final String HEAD_LEVEL = "level";
+	private final String HEAD_TIME = "time";
+	private final String HEAD_RESULT = "result";
+	
 	private JPanel panel = null;
 	private DigestServer digestServer;
 	
@@ -49,7 +57,7 @@ public class DigestMenuItem extends ArchMenu
 	private JButton addBut;
 	private JButton delBut;
 	private JCheckBox updateEnableCheck;
-	private JTable centerTable;
+	private SuRenTable centerTable;
 	
 	private Timer updateTimer;
 	
@@ -91,18 +99,19 @@ public class DigestMenuItem extends ArchMenu
 		toolBar = new JToolBar();
 		fillToolBar(toolBar);
 		
-		centerTable = new JTable();
+		centerTable = new SuRenTable();
 		JScrollPane scrollPane = new JScrollPane(centerTable);
 		
-		setTableHeader();
-		setTableActin();
+		centerTable.setHeaders(HEAD_PATH, HEAD_SIZE, HEAD_TYPE,
+				HEAD_LEVEL, HEAD_TIME, HEAD_RESULT);
 		
 		panel.add(toolBar, BorderLayout.NORTH);
 		panel.add(scrollPane, BorderLayout.CENTER);
 		
 		updateTimer = new Timer();
 		
-		scrollPane.setDropTarget(new DropTarget(){
+		scrollPane.setDropTarget(new DropTarget()
+		{
 
 			private static final long	serialVersionUID	= 1415079189100811337L;
 
@@ -163,31 +172,6 @@ public class DigestMenuItem extends ArchMenu
 		toolBar.add(addBut);
 		toolBar.add(delBut);
 		toolBar.add(updateEnableCheck);
-	}
-
-	private final String HEAD_PATH = "path";
-	private final String HEAD_SIZE = "size";
-	private final String HEAD_TYPE = "type";
-	private final String HEAD_LEVEL = "level";
-	private final String HEAD_TIME = "time";
-	private final String HEAD_RESULT = "result";
-	
-	private void setTableHeader()
-	{
-		TableModel model = new DefaultTableModel(new String[]{
-				HEAD_PATH,
-				HEAD_SIZE,
-				HEAD_TYPE,
-				HEAD_LEVEL,
-				HEAD_TIME,
-				HEAD_RESULT
-		}, 0);
-		
-		centerTable.setModel(model);
-	}
-
-	private void setTableActin()
-	{
 	}
 	
 	private int getColumnByName(TableModel model, String name)
@@ -272,19 +256,19 @@ public class DigestMenuItem extends ArchMenu
 	
 	class PerformEvent
 	{
-		private JTable table;
+		private SuRenTable table;
 		
-		public PerformEvent(JTable table)
+		public PerformEvent(SuRenTable table)
 		{
 			this.table = table;
 		}
 
-		public JTable getTable()
+		public SuRenTable getTable()
 		{
 			return table;
 		}
 
-		public void setTable(JTable table)
+		public void setTable(SuRenTable table)
 		{
 			this.table = table;
 		}
@@ -301,7 +285,7 @@ public class DigestMenuItem extends ArchMenu
 
 		public void actionPerformed(PerformEvent event)
 		{
-			JTable table = event.getTable();
+			SuRenTable table = event.getTable();
 			if(table == null)
 			{
 				return;
@@ -371,26 +355,17 @@ public class DigestMenuItem extends ArchMenu
 	
 	private void pushFiles(File[] files)
 	{
-		TableModel tbModel = centerTable.getModel();
-		DefaultTableModel model = null;
-		if(tbModel instanceof DefaultTableModel)
-		{
-			model = (DefaultTableModel) tbModel;
-		}
-		else
-		{
-			return;
-		}
+		SuRenTableModel model = centerTable.getModel();
 		
 		pushFiles(model, files);
 	}
 	
-	private void pushFiles(DefaultTableModel model, File[] files)
+	private void pushFiles(SuRenTableModel model, File[] files)
 	{
 		pushFiles(model, files, true);
 	}
 	
-	private void pushFiles(DefaultTableModel model, File[] files, boolean onlyFile)
+	private void pushFiles(SuRenTableModel model, File[] files, boolean onlyFile)
 	{
 		if(files == null)
 		{
