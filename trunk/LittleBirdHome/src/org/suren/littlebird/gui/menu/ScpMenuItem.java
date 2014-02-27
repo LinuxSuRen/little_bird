@@ -28,6 +28,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.swing.JButton;
 import javax.swing.JComboBox;
+import javax.swing.JComponent;
 import javax.swing.JMenuItem;
 import javax.swing.JPanel;
 import javax.swing.JPasswordField;
@@ -35,19 +36,22 @@ import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
 import javax.swing.JTabbedPane;
-import javax.swing.JTable;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.JToolBar;
+import javax.swing.KeyStroke;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableModel;
 
 import org.suren.littlebird.annotation.Menu;
 import org.suren.littlebird.annotation.Menu.Action;
 import org.suren.littlebird.gui.ConnectButton;
+import org.suren.littlebird.gui.FocusAndSelectListener;
 import org.suren.littlebird.gui.GeneralDropTarget;
 import org.suren.littlebird.gui.GeneralPanel;
 import org.suren.littlebird.gui.MainFrame;
+import org.suren.littlebird.gui.SuRenTable;
+import org.suren.littlebird.gui.SuRenTableModel;
 import org.suren.littlebird.net.HomeScp;
 import org.suren.littlebird.net.ssh.SimpleSftpProgressMonitor;
 import org.suren.littlebird.net.ssh.SimpleUserInfo;
@@ -60,7 +64,8 @@ import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
 import com.jcraft.jsch.SftpException;
 
-@Menu(displayName = "Scp", parentMenu = RemoteMenu.class, index = 0)
+@Menu(displayName = "Scp", parentMenu = RemoteMenu.class, index = 0,
+		keyCode = KeyEvent.VK_P, modifiers = KeyEvent.CTRL_DOWN_MASK)
 public class ScpMenuItem extends ArchMenu
 {
 	private JTabbedPane panel = null;
@@ -222,6 +227,9 @@ public class ScpMenuItem extends ArchMenu
 		conBut.setHost(hostField);
 		conBut.setPort(portField);
 		conBut.setPassword(pwdField);
+		
+		syncBut.setMnemonic('s');
+		conBut.setMnemonic('c');
 
 		toolBar.add(syncBut);
 		toolBar.add(userField);
@@ -381,7 +389,7 @@ public class ScpMenuItem extends ArchMenu
 			return;
 		}
 		
-		JTable table = tabInfo.getRemoteTable();
+		SuRenTable table = tabInfo.getRemoteTable();
 		TableModel tbModel = table.getModel();
 		if(tbModel instanceof DefaultTableModel)
 		{
@@ -423,22 +431,17 @@ public class ScpMenuItem extends ArchMenu
 		}
 	}
 
-	private void fillTable(JTable table, Vector<Object> ... datas)
+	private void fillTable(SuRenTable table, Vector<Object> ... datas)
 	{
 		if(table == null || datas == null)
 		{
 			return;
 		}
 		
-		TableModel tbModel = table.getModel();
-		if(tbModel instanceof DefaultTableModel)
+		SuRenTableModel model = table.getModel();
+		for(Vector<Object> data : datas)
 		{
-			DefaultTableModel model = (DefaultTableModel) tbModel;
-			
-			for(Vector<Object> data : datas)
-			{
-				model.addRow(data);
-			}
+			model.addRow(data);
 		}
 	}
 	
@@ -495,9 +498,8 @@ public class ScpMenuItem extends ArchMenu
 		pane.setOneTouchExpandable(true);
 		pane.setDividerLocation((int)((MainFrame.getInstance().getContentPanel().getWidth() - pane.getDividerSize()) * 0.5));
 		
-		JTable localTable = new JTable();
-		localTable.setAutoCreateRowSorter(true);
-		setTableHeader(localTable, HEAD_PATH, HEAD_SIZE, HEAD_LEVEL);
+		SuRenTable localTable = new SuRenTable();
+		localTable.setHeaders(HEAD_PATH, HEAD_SIZE, HEAD_LEVEL);
 		localPopupMenu = createLocalPopupMenu(tabInfo);
 		localTable.addKeyListener(new KeyAdapter()
 		{
@@ -506,7 +508,7 @@ public class ScpMenuItem extends ArchMenu
 			public void keyReleased(KeyEvent e)
 			{
 				Object source = e.getSource();
-				if(!(source instanceof JTable))
+				if(!(source instanceof SuRenTable))
 				{
 					return;
 				}
@@ -514,7 +516,7 @@ public class ScpMenuItem extends ArchMenu
 				int code = e.getKeyCode();
 				if(code == KeyEvent.VK_DELETE)
 				{
-					JTable table = (JTable) source;
+					SuRenTable table = (SuRenTable) source;
 					int[] rows = table.getSelectedRows();
 					TableModel tbModel = table.getModel();
 					DefaultTableModel model;
@@ -548,19 +550,17 @@ public class ScpMenuItem extends ArchMenu
 				Object source = e.getSource();
 				
 				if(MouseEvent.BUTTON3 == buttonCode
-						&& source instanceof JTable)
+						&& source instanceof SuRenTable)
 				{
-					localPopupMenu.show((JTable) source, e.getX(), e.getY());
+					localPopupMenu.show((SuRenTable) source, e.getX(), e.getY());
 				}
-				
-				System.out.println("=====" + e.getClickCount());
 			}
 		});
 		
 		preLoadFiles(localTable, tabInfo);
 		
 		JScrollPane localPane = new JScrollPane(localTable);
-		GeneralDropTarget<JTable> localDropTarget = new GeneralDropTarget<JTable>()
+		GeneralDropTarget<SuRenTable> localDropTarget = new GeneralDropTarget<SuRenTable>()
 		{
 			private static final long	serialVersionUID	= 8863733190573710775L;
 
@@ -616,11 +616,11 @@ public class ScpMenuItem extends ArchMenu
 			@Override
 			public void mouseReleased(MouseEvent e)
 			{
-				System.out.println("-------------" + e.getClickCount());
 			}
 		});
 		
-		SimpleSftpProgressMonitor<JTable> monitor = new SimpleSftpProgressMonitor<JTable>(){
+		SimpleSftpProgressMonitor<SuRenTable> monitor = new SimpleSftpProgressMonitor<SuRenTable>()
+		{
 			private long maxCount;
 			private long nowCount;
 			private AtomicInteger index;
@@ -630,7 +630,7 @@ public class ScpMenuItem extends ArchMenu
 			@Override
 			public void init(int op, String src, String dest, long max)
 			{
-				JTable target = getTarget();
+				SuRenTable target = getTarget();
 				int rowCount = target.getRowCount();
 				
 				maxCount = max;
@@ -653,7 +653,7 @@ public class ScpMenuItem extends ArchMenu
 				
 				GeneralThread<Integer> generalThrad = new GeneralThread<Integer>("SimpleMonitorLevel"){
 					
-					private JTable target = getTarget();
+					private SuRenTable target = getTarget();
 
 					@Override
 					public void run()
@@ -683,8 +683,6 @@ public class ScpMenuItem extends ArchMenu
 								target.setValueAt(level, row, 2);
 							}
 						}
-						
-						System.out.println("done");
 					}
 				};
 				generalThrad.setData(index.get());
@@ -753,12 +751,12 @@ public class ScpMenuItem extends ArchMenu
 				item = (JMenuItem) source;
 				menu = (JPopupMenu) item.getParent();
 				
-				if(!((invoker = menu.getInvoker()) instanceof JTable))
+				if(!((invoker = menu.getInvoker()) instanceof SuRenTable))
 				{
 					return;
 				}
 				
-				preLoadFiles((JTable) invoker, tabInfo);
+				preLoadFiles((SuRenTable) invoker, tabInfo);
 			}
 		});
 		exploreFiles.addActionListener(new ActionListener(){
@@ -772,7 +770,7 @@ public class ScpMenuItem extends ArchMenu
 		return localPopupMenu;
 	}
 
-	private void preLoadFiles(JTable localTable, TabInfo tabInfo)
+	private void preLoadFiles(SuRenTable localTable, TabInfo tabInfo)
 	{
 		if(localTable == null)
 		{
@@ -819,9 +817,8 @@ public class ScpMenuItem extends ArchMenu
 			}
 		});
 		
-		JTable remoteTable = new JTable();
-		remoteTable.setAutoCreateRowSorter(true);
-		setTableHeader(remoteTable, HEAD_PATH);
+		SuRenTable remoteTable = new SuRenTable();
+		remoteTable.setHeaders(HEAD_PATH);
 		tabInfo.setRemoteTable(remoteTable);
 		remoteTable.addMouseListener(new MouseAdapter()
 		{
@@ -835,12 +832,12 @@ public class ScpMenuItem extends ArchMenu
 				}
 				
 				Object source = e.getSource();
-				if(!(source instanceof JTable))
+				if(!(source instanceof SuRenTable))
 				{
 					return;
 				}
 				
-				JTable table = (JTable) source;
+				SuRenTable table = (SuRenTable) source;
 				int row = table.getSelectedRow();
 				if(row < 0 || row >= table.getRowCount())
 				{
@@ -880,27 +877,6 @@ public class ScpMenuItem extends ArchMenu
 		return rightPanel;
 	}
 
-	private void setTableHeader(JTable table, String ... headers)
-	{
-		if(table == null || headers == null)
-		{
-			return;
-		}
-		
-		DefaultTableModel model = new DefaultTableModel(headers, 0){
-
-			private static final long	serialVersionUID	= 4652694928615773932L;
-
-			@Override
-			public boolean isCellEditable(int row, int column)
-			{
-				return false;
-			}
-		};
-		
-		table.setModel(model);
-	}
-
 	class TabInfo
 	{
 		private String title;
@@ -910,7 +886,7 @@ public class ScpMenuItem extends ArchMenu
 		private int port = 22;
 		private String path = "/root";
 		private List<String> localFiles = new ArrayList<String>();
-		private JTable remoteTable;
+		private SuRenTable remoteTable;
 		private Session session;
 		private ChannelSftp ftpChannel;
 		private SimpleSftpProgressMonitor<?> monitor;
@@ -1004,12 +980,12 @@ public class ScpMenuItem extends ArchMenu
 			this.localFiles = localFiles;
 		}
 
-		public JTable getRemoteTable()
+		public SuRenTable getRemoteTable()
 		{
 			return remoteTable;
 		}
 
-		public void setRemoteTable(JTable remoteTable)
+		public void setRemoteTable(SuRenTable remoteTable)
 		{
 			this.remoteTable = remoteTable;
 		}

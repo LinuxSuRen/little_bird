@@ -47,17 +47,21 @@ import org.apache.cxf.aegis.databinding.AegisDatabinding;
 import org.apache.cxf.frontend.ClientProxyFactoryBean;
 import org.suren.littlebird.annotation.Menu;
 import org.suren.littlebird.annotation.Menu.Action;
+import org.suren.littlebird.exception.SuRenSettingException;
 import org.suren.littlebird.gui.FocusAndSelectListener;
 import org.suren.littlebird.gui.MainFrame;
 import org.suren.littlebird.gui.SuRenTable;
+import org.suren.littlebird.gui.SuRenTableModel;
 import org.suren.littlebird.server.BundleServer;
 import org.suren.littlebird.server.SuRenBundle;
 import org.suren.littlebird.setting.OsgiMgrSetting;
 import org.suren.littlebird.setting.SettingUtil;
 
-@Menu(displayName = "Osgi", parentMenu = RemoteMenu.class, index = 1)
+@Menu(displayName = "Osgi", parentMenu = RemoteMenu.class, index = 1,
+	keyCode = KeyEvent.VK_I, modifiers = KeyEvent.CTRL_DOWN_MASK)
 public class OsgiMenuItem extends ArchMenu
 {
+	private final String	OSGI_CFG_PATH	= "osgi_mgr_cfg.xml";
 	private final String	HEAD_ID			= "id";
 	private final String	HEAD_NAME		= "name";
 	private final String	HEAD_VERSION	= "version";
@@ -147,6 +151,21 @@ public class OsgiMenuItem extends ArchMenu
 		controlBar.add(uninstallBut);
 		controlBar.add(filterBox);
 		controlBar.add(settingBut);
+		
+		OsgiMgrSetting osgiCfg = getOsgiCfg();
+		if(osgiCfg != null)
+		{
+			Set<String> hisPath = osgiCfg.getHistoryPath();
+			if(hisPath != null)
+			{
+				for(String path : hisPath)
+				{
+					filterBox.addItem(path);
+				}
+			}
+			
+			filterBox.setSelectedItem(osgiCfg.getPath());
+		}
 		
 		reloadBut.addActionListener(new ActionListener()
 		{
@@ -249,12 +268,19 @@ public class OsgiMenuItem extends ArchMenu
 				{
 					JComboBox filter = (JComboBox) source;
 					Object item = filter.getSelectedItem();
+					String path = item.toString();
 					
-					loadOsgiInfo(table, item.toString());
+					loadOsgiInfo(table, path);
 					
 					if(table.getRowCount() > 0)
 					{
-						collectForOnly(filter, item);
+						collectForOnly(filter, path);
+						
+						OsgiMgrSetting osgiCfg = getOsgiCfg();
+						osgiCfg.setPath(path);
+						osgiCfg.addHistoryPath(path);
+						
+						saveOsgiCfg(osgiCfg);
 					}
 				}
 			}
@@ -288,27 +314,38 @@ public class OsgiMenuItem extends ArchMenu
 		settingBar.setVisible(false);
 		settingBar.setLayout(gridLayout);
 
-		final JTextField urlField = new JTextField();
+		final JComboBox urlField = new JComboBox();
 		final JTextField portField = new JTextField();
 		JButton saveBut = new JButton("save");
+		
+		urlField.setEditable(true);
+		saveBut.setMnemonic('v');
 		
 		settingBar.add(new JLabel("url"));
 		settingBar.add(urlField);
 		settingBar.add(new JLabel("port"));
 		settingBar.add(portField);
-//		settingBar.addSeparator();
 		settingBar.add(saveBut);
 		
-		OsgiMgrSetting data = new SettingUtil<OsgiMgrSetting>().load(
-				OsgiMgrSetting.class, "d:/a.xml");
+		OsgiMgrSetting data = getOsgiCfg();
 		
 		if(data != null)
 		{
-			urlField.setText(data.getHost());
 			portField.setText(String.valueOf(data.getPort()));
 			
 			setting.setUrl(data.getHost());
 			setting.setPort(data.getPort());
+			
+			Set<String> hisUrl = data.getHistoryUrl();
+			if(hisUrl != null)
+			{
+				for(String url : hisUrl)
+				{
+					urlField.addItem(url);
+				}
+			}
+			
+			urlField.setSelectedItem(data.getHost());
 		}
 		
 		saveBut.addActionListener(new ActionListener()
@@ -317,7 +354,13 @@ public class OsgiMenuItem extends ArchMenu
 			@Override
 			public void actionPerformed(ActionEvent e)
 			{
-				String url = urlField.getText();
+				Object item = urlField.getSelectedItem();
+				if(item == null || "".equals(item.toString()))
+				{
+					return;
+				}
+				
+				String url = item.toString();
 				String strPort = portField.getText();
 				int port = -1;
 				
@@ -349,12 +392,12 @@ public class OsgiMenuItem extends ArchMenu
 					return false;
 				}
 				
-				OsgiMgrSetting osgiSetting = new OsgiMgrSetting();
+				OsgiMgrSetting osgiSetting = getOsgiCfg();
 				osgiSetting.setHost(setting.getUrl());
 				osgiSetting.setPort(setting.getPort());
+				osgiSetting.addHistoryUrl(setting.getUrl());
 				
-				return new SettingUtil<OsgiMgrSetting>().save(OsgiMgrSetting.class,
-						osgiSetting, "d:/a.xml");
+				return saveOsgiCfg(osgiSetting);
 			}
 		});
 		
@@ -565,7 +608,21 @@ public class OsgiMenuItem extends ArchMenu
 			}
 		}
 		
-		ClientProxyFactoryBean factory = getClientProxy();
+		ClientProxyFactoryBean factory = null;
+		
+		try
+		{
+			factory = getClientProxy();
+		}
+		catch(SuRenSettingException e)
+		{
+		}
+		
+		if(factory == null)
+		{
+			return count;
+		}
+		
 		BundleServer server = (BundleServer) factory.create();
 		
 		switch(state)
@@ -592,7 +649,8 @@ public class OsgiMenuItem extends ArchMenu
 
 	private SuRenTable createCenter(SuRenTable table)
 	{
-		setTableHeader(table, HEAD_ID, HEAD_NAME, HEAD_VERSION, HEAD_STATE);
+		table.setHeaders(HEAD_ID, HEAD_NAME, HEAD_VERSION, HEAD_STATE);
+		table.setColumnSorterClass(0, Number.class);
 		
 		final JSplitPane centerPanel = new JSplitPane();
 		centerPanel.setLeftComponent(new JScrollPane(table));
@@ -658,7 +716,7 @@ public class OsgiMenuItem extends ArchMenu
 		final SuRenTable detailInfoTable = new SuRenTable();
 		final JScrollPane detailInfoScroll = new JScrollPane(detailInfoTable);
 		
-		setTableHeader(detailInfoTable, HEAD_NAME, HEAD_VALUE);
+		detailInfoTable.setHeaders(HEAD_NAME, HEAD_VALUE);
 		
 		table.addMouseListener(new MouseAdapter()
 		{
@@ -741,6 +799,7 @@ public class OsgiMenuItem extends ArchMenu
 				BundleServer server = (BundleServer) factory.create();
 				
 				SuRenBundle bundle = server.getById(id);
+				@SuppressWarnings("unchecked")
 				Vector<Object>[] data = new Vector[5];
 				
 				SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
@@ -801,6 +860,20 @@ public class OsgiMenuItem extends ArchMenu
 		}
 		
 		ClientProxyFactoryBean factory = getClientProxy();
+		
+		try
+		{
+			factory = getClientProxy();
+		}
+		catch(SuRenSettingException e)
+		{
+		}
+		
+		if(factory == null)
+		{
+			return;
+		}
+		
 		BundleServer server = (BundleServer) factory.create();
 		
 		List<SuRenBundle> bundles;
@@ -813,11 +886,14 @@ public class OsgiMenuItem extends ArchMenu
 			bundles = server.getAll();
 		}
 		
-		int installedCount = 0;
-		int activeCount = 0;
+		BundleState bundleState = new BundleState();
 		
-		for(SuRenBundle bundle : bundles)
+		int len = bundles.size();
+		@SuppressWarnings("unchecked")
+		Vector<Object>[] items = new Vector[len];
+		for(int i = 0; i < len; i++)
 		{
+			SuRenBundle bundle = bundles.get(i);
 			Vector<Object> item = new Vector<Object>();
 			
 			int state = bundle.getState();
@@ -825,26 +901,18 @@ public class OsgiMenuItem extends ArchMenu
 			item.add(bundle.getId());
 			item.add(bundle.getName());
 			item.add(bundle.getVersion());
-			item.add(getDisplay(state));
+			item.add(getDisplay(state, bundleState));
 			
-			fillTable(osgiTable, item);
-			
-			switch(state)
-			{
-				case SuRenBundle.INSTALLED:
-					installedCount++;
-					break;
-				case SuRenBundle.ACTIVE:
-					activeCount++;
-					break;
-			}
+			items[i] = item;
 		}
+		fillTable(osgiTable, items);
 		
 		MainFrame main = MainFrame.getInstance();
 		main.setTitle("BundleInfo: ",
 				bundles.size(), " in total, ",
-				activeCount, " in active, ",
-				installedCount, " in installed");
+				bundleState.getActiveNum(), " in active, ",
+				bundleState.getInstalledNum(), " in installed, ",
+				bundleState.getResolvedNum(), " in resolved");
 	}
 	
 	private void clearTable(SuRenTable table)
@@ -869,19 +937,29 @@ public class OsgiMenuItem extends ArchMenu
 	
 	private ClientProxyFactoryBean getClientProxy()
 	{
-		String url = setting.getUrl() + ":" + setting.getPort() + "/greeter";
-		
-		if(!url.startsWith("http://") && !url.startsWith("https://"))
+		String url = setting.getUrl();
+		int port = setting.getPort();
+		if(url == null || "".equals(url) || port < 0 || port > 65536)
 		{
-			url = "http://" + url;
+			throw new SuRenSettingException("webservice url or port is invalid.");
 		}
 		
-		return getClientProxy(url, BundleServer.class);
+		String host = setting.getUrl() + ":" + setting.getPort() + "/greeter";
+		if(!host.startsWith("http://") && !host.startsWith("https://"))
+		{
+			host = "http://" + host;
+		}
+		
+		return getClientProxy(host, BundleServer.class);
 	}
 	
 	private ClientProxyFactoryBean getClientProxy(String url, Class<BundleServer> clazz)
 	{
 		ClientProxyFactoryBean factory = new ClientProxyFactoryBean();
+		if(url == null || "".equals(url))
+		{
+			throw new SuRenSettingException("webservice url is invalid.");
+		}
 		
 		factory.setAddress(url);
 		factory.setServiceClass(BundleServer.class);
@@ -907,31 +985,20 @@ public class OsgiMenuItem extends ArchMenu
 			clearTable(table);
 		}
 		
-		TableModel tbModel = table.getModel();
-		if(tbModel instanceof DefaultTableModel)
+		SuRenTableModel model = table.getModel();
+		for(Vector<Object> data : datas)
 		{
-			DefaultTableModel model = (DefaultTableModel) tbModel;
-			
-			for(Vector<Object> data : datas)
-			{
-				model.addRow(data);
-			}
+			model.addRow(data);
 		}
-	}
-
-	private void setTableHeader(SuRenTable osgiTable, String ... headers)
-	{
-		if(osgiTable == null || headers == null)
-		{
-			return;
-		}
-		
-		osgiTable.setHeaders(headers);
 	}
 	
-	private String getDisplay(int code)
+	private String getDisplay(int code, BundleState bundleState)
 	{
 		String display = "";
+		if(bundleState == null)
+		{
+			bundleState = new BundleState();
+		}
 		
 		switch(code)
 		{
@@ -940,9 +1007,11 @@ public class OsgiMenuItem extends ArchMenu
 				break;
 			case SuRenBundle.INSTALLED:
 				display = "installed";
+				bundleState.increaseInstalled();
 				break;
 			case SuRenBundle.RESOLVED:
 				display = "resolved";
+				bundleState.increaseResolved();
 				break;
 			case SuRenBundle.STARTING:
 				display = "starting";
@@ -952,10 +1021,37 @@ public class OsgiMenuItem extends ArchMenu
 				break;
 			case SuRenBundle.ACTIVE:
 				display = "active";
+				bundleState.increaseActive();
 				break;
 		}
 		
 		return display;
+	}
+	
+	private OsgiMgrSetting getOsgiCfg()
+	{
+		return getOsgiCfg(OSGI_CFG_PATH);
+	}
+	
+	private OsgiMgrSetting getOsgiCfg(String path)
+	{
+		SettingUtil<OsgiMgrSetting> settingUtil = new SettingUtil<OsgiMgrSetting>();
+		
+		OsgiMgrSetting data = settingUtil.load(OsgiMgrSetting.class, path);
+		
+		return data;
+	}
+	
+	private boolean saveOsgiCfg(OsgiMgrSetting osgiCfg)
+	{
+		return saveOsgiCfg(OSGI_CFG_PATH, osgiCfg);
+	}
+	
+	private boolean saveOsgiCfg(String path, OsgiMgrSetting osgiCfg)
+	{
+		SettingUtil<OsgiMgrSetting> settingUtil = new SettingUtil<OsgiMgrSetting>();
+		
+		return settingUtil.save(OsgiMgrSetting.class, osgiCfg, path);
 	}
 	
 	class Setting
@@ -981,6 +1077,37 @@ public class OsgiMenuItem extends ArchMenu
 		public void setPort(int port)
 		{
 			this.port = port;
+		}
+	}
+	
+	class BundleState
+	{
+		private int activeNum = 0;
+		private int installedNum = 0;
+		private int resolvedNum = 0;
+		public int increaseActive()
+		{
+			return activeNum++;
+		}
+		public int getActiveNum()
+		{
+			return activeNum;
+		}
+		public int increaseInstalled()
+		{
+			return installedNum++;
+		}
+		public int getInstalledNum()
+		{
+			return installedNum;
+		}
+		public int increaseResolved()
+		{
+			return resolvedNum++;
+		}
+		public int getResolvedNum()
+		{
+			return resolvedNum;
 		}
 	}
 }

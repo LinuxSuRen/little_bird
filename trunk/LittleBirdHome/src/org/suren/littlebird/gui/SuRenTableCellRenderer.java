@@ -29,7 +29,7 @@ public class SuRenTableCellRenderer extends DefaultTableCellRenderer
 			int gap = columnCount - columnWidths.size();
 			for(int i = 0; i < gap; i++)
 			{
-				columnWidths.add(0);
+				columnWidths.add(10);
 			}
 		}
 		
@@ -41,13 +41,18 @@ public class SuRenTableCellRenderer extends DefaultTableCellRenderer
 		
 		TableColumn columnObj = table.getColumnModel().getColumn(column);
 		int width = columnObj.getMinWidth();
-		if(width < columnWidths.get(column))
+		if(width != columnWidths.get(column))
 		{
+			System.out.println("auto resize ------------ column" + columnWidths.get(column) + "----------" + width);
+			
 			columnObj.setMinWidth(columnWidths.get(column));
 		}
 		
-		if(table.getRowHeight(row) != preferredSize.height)
+		if(value != null && !"".equals(value.toString()) &&
+				table.getRowHeight(row) < preferredSize.height)
 		{
+			System.out.println("auto resize -------------- row" + preferredSize.height + "----------" + table.getRowHeight(row) + "--------" + value.toString());
+			
 			table.setRowHeight(row, preferredSize.height);
 		}
 		

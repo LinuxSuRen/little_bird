@@ -22,6 +22,7 @@ import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
 import javax.swing.JPanel;
+import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
 
 import org.suren.littlebird.Launcher;
@@ -267,6 +268,14 @@ public class MainFrame extends JFrame
 			else
 			{
 				JMenuItem menuItem = new JMenuItem(subAnno.displayName());
+				
+				if(subAnno.keyCode() != -1 && subAnno.modifiers() != -1)
+				{
+					KeyStroke keyStroke = KeyStroke.getKeyStroke(
+							subAnno.keyCode(), subAnno.modifiers());
+					
+					menuItem.setAccelerator(keyStroke);
+				}
 				
 				menu.add(menuItem);
 				menuMap.put(subCls, menuItem);
