@@ -160,4 +160,23 @@ public class SettingUtil<T>
 		
 		return null;
 	}
+	
+	public static void main(String[] args) throws Exception
+	{
+		OsgiMgrSetting osgiSetting = new OsgiMgrSetting();
+		osgiSetting.setHost("url");
+		osgiSetting.setPort(23);
+		
+		osgiSetting.addHistoryUrl("url1");
+		osgiSetting.addHistoryUrl("url2");
+		osgiSetting.addHistoryUrl("url2");
+		osgiSetting.addHistoryUrl("url2");
+		
+		SettingUtil<OsgiMgrSetting> util = new SettingUtil<OsgiMgrSetting>();
+		util.save(OsgiMgrSetting.class, osgiSetting, "osgi_mgr_cfg.xml");
+		
+		OsgiMgrSetting setting = util.load(OsgiMgrSetting.class, "osgi_mgr_cfg.xml");
+		
+		System.out.println(setting.getHistoryUrl());
+	}
 }

@@ -4,11 +4,14 @@ import java.util.Vector;
 
 import javax.swing.JTable;
 
+import org.suren.littlebird.util.NumberComparator;
+
 public class SuRenTable extends JTable
 {
 	private static final long	serialVersionUID	= 1L;
 	
 	private SuRenTableModel model;
+	private SuRenTableRowSorter rowSorter;
 	private SuRenTableCellRenderer cellRenderer = new SuRenTableCellRenderer();
 	
 	public SuRenTable()
@@ -25,10 +28,12 @@ public class SuRenTable extends JTable
 			setModel(model);
 		}
 		
-		setAutoCreateRowSorter(true);
+		rowSorter = new SuRenTableRowSorter(getModel());
+		setRowSorter(rowSorter);
+		firePropertyChange("autoCreateRowSorter", false, true);
 	}
 	
-	public void setHeaders(String ... headers)
+	public void setHeaders(Object ... headers)
 	{
 		if(headers == null)
 		{
@@ -36,8 +41,8 @@ public class SuRenTable extends JTable
 		}
 		
 		int len = headers.length;
-		Vector<String> headersV = new Vector<String>(len);
-		for(String header : headers)
+		Vector<Object> headersV = new Vector<Object>(len);
+		for(Object header : headers)
 		{
 			headersV.addElement(header);
 		}
@@ -45,7 +50,7 @@ public class SuRenTable extends JTable
 		setHeaders(headersV);
 	}
 	
-	public void setHeaders(Vector<String> headers)
+	public void setHeaders(Vector<Object> headers)
 	{
 		if(headers == null)
 		{
@@ -58,6 +63,20 @@ public class SuRenTable extends JTable
 		for(int i = 0; i < columnCount; i++)
 		{
 			getColumnModel().getColumn(i).setCellRenderer(cellRenderer);
+		}
+	}
+	
+	public void setColumnSorterClass(int index, Class<?> clazz)
+	{
+		int columnCount = getColumnCount();
+		if(index < 0 || index >= columnCount)
+		{
+			return;
+		}
+		
+		if(clazz == Number.class)
+		{
+			rowSorter.setComparator(index, NumberComparator.getInstance());
 		}
 	}
 

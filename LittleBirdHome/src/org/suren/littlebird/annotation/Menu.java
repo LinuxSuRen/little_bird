@@ -12,6 +12,8 @@ public @interface Menu
 	String displayName();
 	Class<?> parentMenu();
 	int index() default 0;
+	int keyCode() default -1;
+	int modifiers() default -1;
 	
 	@Target(ElementType.FIELD)
 	@Retention(RetentionPolicy.RUNTIME)

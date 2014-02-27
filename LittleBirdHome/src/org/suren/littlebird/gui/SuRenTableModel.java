@@ -103,4 +103,24 @@ public class SuRenTableModel extends DefaultTableModel
 	{
 		this.readOnly = readOnly;
 	}
+
+	@Override
+	public Class<?> getColumnClass(int columnIndex)
+	{
+		if(getRowCount() > 0)
+		{
+			Object value = getValueAt(0, columnIndex);
+			
+			if(value instanceof Number)
+			{
+				return Number.class;
+			}
+			else if(value instanceof String)
+			{
+				return String.class;
+			}
+		}
+		
+		return super.getColumnClass(columnIndex);
+	}
 }
