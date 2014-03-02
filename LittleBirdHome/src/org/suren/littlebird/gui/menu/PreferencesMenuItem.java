@@ -20,7 +20,7 @@ import org.suren.littlebird.annotation.Menu.Action;
 import org.suren.littlebird.gui.MainFrame;
 
 @Menu(displayName = "Preferences", parentMenu = WindowMenu.class, index = 0)
-public class PreferencesMenuItem extends ArchMenu
+public class PreferencesMenuItem extends ArchMenu<Object>
 {
 	private JPanel panel;
 	private String name;
@@ -133,5 +133,17 @@ public class PreferencesMenuItem extends ArchMenu
 				}
 			}
 		});
+	}
+
+	@Override
+	protected boolean saveCfg(Object cfgObj)
+	{
+		return false;
+	}
+
+	@Override
+	protected Object loadCfg()
+	{
+		return null;
 	}
 }

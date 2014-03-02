@@ -59,7 +59,7 @@ import org.suren.littlebird.setting.SettingUtil;
 
 @Menu(displayName = "Osgi", parentMenu = RemoteMenu.class, index = 1,
 	keyCode = KeyEvent.VK_I, modifiers = KeyEvent.CTRL_DOWN_MASK)
-public class OsgiMenuItem extends ArchMenu
+public class OsgiMenuItem extends ArchMenu<OsgiMgrSetting>
 {
 	private final String	OSGI_CFG_PATH	= "osgi_mgr_cfg.xml";
 	private final String	HEAD_ID			= "id";
@@ -152,7 +152,7 @@ public class OsgiMenuItem extends ArchMenu
 		controlBar.add(filterBox);
 		controlBar.add(settingBut);
 		
-		OsgiMgrSetting osgiCfg = getOsgiCfg();
+		OsgiMgrSetting osgiCfg = loadCfg();
 		if(osgiCfg != null)
 		{
 			Set<String> hisPath = osgiCfg.getHistoryPath();
@@ -276,11 +276,11 @@ public class OsgiMenuItem extends ArchMenu
 					{
 						collectForOnly(filter, path);
 						
-						OsgiMgrSetting osgiCfg = getOsgiCfg();
+						OsgiMgrSetting osgiCfg = loadCfg();
 						osgiCfg.setPath(path);
 						osgiCfg.addHistoryPath(path);
 						
-						saveOsgiCfg(osgiCfg);
+						saveCfg(osgiCfg);
 					}
 				}
 			}
@@ -327,7 +327,7 @@ public class OsgiMenuItem extends ArchMenu
 		settingBar.add(portField);
 		settingBar.add(saveBut);
 		
-		OsgiMgrSetting data = getOsgiCfg();
+		OsgiMgrSetting data = loadCfg();
 		
 		if(data != null)
 		{
@@ -392,12 +392,12 @@ public class OsgiMenuItem extends ArchMenu
 					return false;
 				}
 				
-				OsgiMgrSetting osgiSetting = getOsgiCfg();
+				OsgiMgrSetting osgiSetting = loadCfg();
 				osgiSetting.setHost(setting.getUrl());
 				osgiSetting.setPort(setting.getPort());
 				osgiSetting.addHistoryUrl(setting.getUrl());
 				
-				return saveOsgiCfg(osgiSetting);
+				return saveCfg(osgiSetting);
 			}
 		});
 		
@@ -1028,30 +1028,32 @@ public class OsgiMenuItem extends ArchMenu
 		return display;
 	}
 	
-	private OsgiMgrSetting getOsgiCfg()
-	{
-		return getOsgiCfg(OSGI_CFG_PATH);
-	}
-	
 	private OsgiMgrSetting getOsgiCfg(String path)
 	{
 		SettingUtil<OsgiMgrSetting> settingUtil = new SettingUtil<OsgiMgrSetting>();
 		
-		OsgiMgrSetting data = settingUtil.load(OsgiMgrSetting.class, path);
+		OsgiMgrSetting data = settingUtil.load(path, OsgiMgrSetting.class);
 		
 		return data;
 	}
-	
-	private boolean saveOsgiCfg(OsgiMgrSetting osgiCfg)
+
+	@Override
+	protected OsgiMgrSetting loadCfg()
 	{
-		return saveOsgiCfg(OSGI_CFG_PATH, osgiCfg);
+		return getOsgiCfg(OSGI_CFG_PATH);
 	}
 	
 	private boolean saveOsgiCfg(String path, OsgiMgrSetting osgiCfg)
 	{
 		SettingUtil<OsgiMgrSetting> settingUtil = new SettingUtil<OsgiMgrSetting>();
 		
-		return settingUtil.save(OsgiMgrSetting.class, osgiCfg, path);
+		return settingUtil.save(osgiCfg, path, OsgiMgrSetting.class);
+	}
+
+	@Override
+	protected boolean saveCfg(OsgiMgrSetting cfgObj)
+	{
+		return saveOsgiCfg(OSGI_CFG_PATH, cfgObj);
 	}
 	
 	class Setting

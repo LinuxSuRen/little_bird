@@ -14,7 +14,7 @@ import org.suren.littlebird.gui.MainFrame;
 import com.sun.java.swing.plaf.windows.WindowsLookAndFeel;
 
 @Menu(displayName = "About", parentMenu = HelpMenu.class)
-public class AboutMenuItem extends ArchMenu
+public class AboutMenuItem extends ArchMenu<Object>
 {
 	@Action
 	private ActionListener action = new ActionListener()
@@ -35,4 +35,16 @@ public class AboutMenuItem extends ArchMenu
 			}
 		}
 	};
+
+	@Override
+	protected boolean saveCfg(Object cfgObj)
+	{
+		return false;
+	}
+
+	@Override
+	protected Object loadCfg()
+	{
+		return null;
+	}
 }

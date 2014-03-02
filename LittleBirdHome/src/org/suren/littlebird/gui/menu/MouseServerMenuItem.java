@@ -19,7 +19,7 @@ import org.suren.littlebird.server.MouseServer;
 import org.suren.littlebird.server.SimpleServer;
 
 @Menu(displayName = "MouseServer", parentMenu = ServerMenu.class, index = 0)
-public class MouseServerMenuItem extends ArchMenu
+public class MouseServerMenuItem extends ArchMenu<Object>
 {
 	private JPanel panel = null;
 	private JTextField portField = null;
@@ -163,5 +163,17 @@ public class MouseServerMenuItem extends ArchMenu
 		portField.setEnabled(!running);
 		startBut.setEnabled(!running);
 		stopBut.setEnabled(running);
+	}
+
+	@Override
+	protected boolean saveCfg(Object cfgObj)
+	{
+		return false;
+	}
+
+	@Override
+	protected Object loadCfg()
+	{
+		return null;
 	}
 }

@@ -25,7 +25,7 @@ import org.suren.littlebird.server.MonitorServer;
 import org.suren.littlebird.server.SimpleServer;
 
 @Menu(displayName = "ScreenServer", parentMenu = ServerMenu.class, index = 1)
-public class ScreenServerMenuItem extends ArchMenu
+public class ScreenServerMenuItem extends ArchMenu<Object>
 {
 	private JPanel panel = null;
 	private JTextField portField = null;
@@ -244,5 +244,17 @@ public class ScreenServerMenuItem extends ArchMenu
 		portField.setEnabled(!running);
 		startBut.setEnabled(!running);
 		stopBut.setEnabled(running);
+	}
+
+	@Override
+	protected boolean saveCfg(Object cfgObj)
+	{
+		return false;
+	}
+
+	@Override
+	protected Object loadCfg()
+	{
+		return null;
 	}
 }

@@ -17,7 +17,7 @@ import org.suren.littlebird.io.IoUtil;
 
 public class SettingUtil<T>
 {
-	public boolean save(Class<?> clazz, T type, OutputStream stream)
+	public boolean save(T type, OutputStream stream, Class<?> ... clazz)
 	{
 		JAXBContext context = getContext(clazz);
 		if(context == null || type == null || stream == null)
@@ -40,7 +40,7 @@ public class SettingUtil<T>
 		return false;
 	}
 	
-	public boolean save(Class<?> clazz, T type, String path)
+	public boolean save(T type, String path, Class<?> ... clazz)
 	{
 		File file = null;
 		FileOutputStream outStream = null;
@@ -70,7 +70,7 @@ public class SettingUtil<T>
 		{
 			outStream = new FileOutputStream(file);
 			
-			return save(clazz, type, outStream);
+			return save(type, outStream, clazz);
 		}
 		catch (FileNotFoundException e)
 		{
@@ -85,7 +85,7 @@ public class SettingUtil<T>
 	}
 	
 	@SuppressWarnings("unchecked")
-	public T load(Class<?> clazz, InputStream stream)
+	public T load(InputStream stream, Class<?> ... clazz)
 	{
 		JAXBContext context = getContext(clazz);
 		if(context == null || stream == null)
@@ -103,7 +103,7 @@ public class SettingUtil<T>
 			Unmarshaller unmarshaller = context.createUnmarshaller();
 			
 			Object result = unmarshaller.unmarshal(stream);
-			if(result.getClass().equals(clazz))
+			if(result.getClass().equals(clazz[0]))
 			{
 				return (T) result;
 			}
@@ -120,7 +120,7 @@ public class SettingUtil<T>
 		return null;
 	}
 	
-	public T load(Class<?> clazz, String path)
+	public T load(String path, Class<?> ... clazz)
 	{
 		File file;
 		FileInputStream inStream = null;
@@ -133,7 +133,7 @@ public class SettingUtil<T>
 		{
 			inStream = new FileInputStream(file);
 			
-			return load(clazz, inStream);
+			return load(inStream, clazz);
 		}
 		catch (FileNotFoundException e)
 		{
@@ -147,7 +147,7 @@ public class SettingUtil<T>
 		return null;
 	}
 	
-	private JAXBContext getContext(Class<?> clazz)
+	private JAXBContext getContext(Class<?> ... clazz)
 	{
 		try
 		{
@@ -159,24 +159,5 @@ public class SettingUtil<T>
 		}
 		
 		return null;
-	}
-	
-	public static void main(String[] args) throws Exception
-	{
-		OsgiMgrSetting osgiSetting = new OsgiMgrSetting();
-		osgiSetting.setHost("url");
-		osgiSetting.setPort(23);
-		
-		osgiSetting.addHistoryUrl("url1");
-		osgiSetting.addHistoryUrl("url2");
-		osgiSetting.addHistoryUrl("url2");
-		osgiSetting.addHistoryUrl("url2");
-		
-		SettingUtil<OsgiMgrSetting> util = new SettingUtil<OsgiMgrSetting>();
-		util.save(OsgiMgrSetting.class, osgiSetting, "osgi_mgr_cfg.xml");
-		
-		OsgiMgrSetting setting = util.load(OsgiMgrSetting.class, "osgi_mgr_cfg.xml");
-		
-		System.out.println(setting.getHistoryUrl());
 	}
 }

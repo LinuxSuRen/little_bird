@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.Vector;
@@ -28,7 +29,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.swing.JButton;
 import javax.swing.JComboBox;
-import javax.swing.JComponent;
 import javax.swing.JMenuItem;
 import javax.swing.JPanel;
 import javax.swing.JPasswordField;
@@ -39,14 +39,12 @@ import javax.swing.JTabbedPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.JToolBar;
-import javax.swing.KeyStroke;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableModel;
 
 import org.suren.littlebird.annotation.Menu;
 import org.suren.littlebird.annotation.Menu.Action;
 import org.suren.littlebird.gui.ConnectButton;
-import org.suren.littlebird.gui.FocusAndSelectListener;
 import org.suren.littlebird.gui.GeneralDropTarget;
 import org.suren.littlebird.gui.GeneralPanel;
 import org.suren.littlebird.gui.MainFrame;
@@ -55,6 +53,10 @@ import org.suren.littlebird.gui.SuRenTableModel;
 import org.suren.littlebird.net.HomeScp;
 import org.suren.littlebird.net.ssh.SimpleSftpProgressMonitor;
 import org.suren.littlebird.net.ssh.SimpleUserInfo;
+import org.suren.littlebird.setting.OsgiMgrSetting;
+import org.suren.littlebird.setting.SettingUtil;
+import org.suren.littlebird.setting.SshSetting;
+import org.suren.littlebird.setting.SshSetting.Ssh;
 import org.suren.littlebird.thread.GeneralThread;
 
 import com.jcraft.jsch.ChannelSftp;
@@ -66,7 +68,7 @@ import com.jcraft.jsch.SftpException;
 
 @Menu(displayName = "Scp", parentMenu = RemoteMenu.class, index = 0,
 		keyCode = KeyEvent.VK_P, modifiers = KeyEvent.CTRL_DOWN_MASK)
-public class ScpMenuItem extends ArchMenu
+public class ScpMenuItem extends ArchMenu<SshSetting>
 {
 	private JTabbedPane panel = null;
 	private JPopupMenu tabPopuMenu = null;
@@ -80,6 +82,8 @@ public class ScpMenuItem extends ArchMenu
 	private final String HEAD_LEVEL = "level";
 	private final String HEAD_TIME = "time";
 	private final String HEAD_RESULT = "result";
+	
+	private final String SSH_CFG_PATH = "ssh_cfg.xml";
 	
 	@Action
 	private ActionListener action = new ActionListener()
@@ -114,7 +118,8 @@ public class ScpMenuItem extends ArchMenu
 		
 		addTab(new TabInfo());
 		
-		panel.addMouseListener(new MouseAdapter(){
+		panel.addMouseListener(new MouseAdapter()
+		{
 
 			@Override
 			public void mouseReleased(MouseEvent e)
@@ -144,12 +149,62 @@ public class ScpMenuItem extends ArchMenu
 	private JPopupMenu createTabMenu()
 	{
 		final JPopupMenu menu = new JPopupMenu();
-		
+
+		JMenuItem saveItem = new JMenuItem("Save");
 		JMenuItem closeItem = new JMenuItem("Close");
 		JMenuItem duplicateItem = new JMenuItem("Duplicate");
-		
+
+		menu.add(saveItem);
 		menu.add(closeItem);
 		menu.add(duplicateItem);
+		
+		saveItem.addActionListener(new ActionListener()
+		{
+			
+			@Override
+			public void actionPerformed(ActionEvent e)
+			{
+				JTabbedPane pane;
+				Component selectedComponent;
+				GeneralPanel<TabInfo> generalPanel;
+				Component invoker = menu.getInvoker();
+				if(!(invoker instanceof JTabbedPane))
+				{
+					return;
+				}
+				
+				pane = (JTabbedPane) invoker;
+				selectedComponent = pane.getSelectedComponent();
+				if(!(selectedComponent instanceof GeneralPanel))
+				{
+					return;
+				}
+				
+				generalPanel = (GeneralPanel<TabInfo>) selectedComponent;
+				TabInfo data = generalPanel.getDataObject();
+				
+				if(data == null || data.getHost() == null || "".equals(data.getHost()))
+				{
+					return;
+				}
+				
+				SshSetting setting = loadCfg();
+				if(setting == null)
+				{
+					setting = new SshSetting(); 
+				}
+				setting.setLastHost(data.getHost());
+
+				SshSetting.Ssh ssh = new SshSetting.Ssh();
+				ssh.setAlias(data.getUser());
+				ssh.setUser(data.getUser());
+				ssh.setPort(data.getPort());
+				ssh.setHost(data.getHost());
+				setting.addSsh(ssh);
+				
+				System.out.println(saveCfg(setting));
+			}
+		});
 		
 		duplicateItem.addActionListener(new ActionListener()
 		{
@@ -875,6 +930,35 @@ public class ScpMenuItem extends ArchMenu
 		rightPanel.add(remotePane, BorderLayout.CENTER);
 		
 		return rightPanel;
+	}
+	
+	private boolean saveCfg(String path, SshSetting cfgObj)
+	{
+		SettingUtil<SshSetting> settingUtil = new SettingUtil<SshSetting>();
+		
+		return settingUtil.save(cfgObj, SSH_CFG_PATH,
+				SshSetting.class, SshSetting.Ssh.class);
+	}
+
+	@Override
+	protected boolean saveCfg(SshSetting cfgObj)
+	{
+		return saveCfg(SSH_CFG_PATH, cfgObj);
+	}
+	
+	private SshSetting loadCfg(String path)
+	{
+		SettingUtil<SshSetting> settingUtil = new SettingUtil<SshSetting>();
+		
+		SshSetting data = settingUtil.load(path, SshSetting.class, SshSetting.Ssh.class);
+		
+		return data;
+	}
+
+	@Override
+	protected SshSetting loadCfg()
+	{
+		return loadCfg(SSH_CFG_PATH);
 	}
 
 	class TabInfo
