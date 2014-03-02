@@ -38,7 +38,7 @@ import org.suren.littlebird.security.DigestServer;
 import org.suren.littlebird.security.DigestTask;
 
 @Menu(displayName = "Digest", parentMenu = SecurityMenu.class, index = 0)
-public class DigestMenuItem extends ArchMenu
+public class DigestMenuItem extends ArchMenu<Object>
 {
 	private final String HEAD_PATH = "path";
 	private final String HEAD_SIZE = "size";
@@ -477,5 +477,17 @@ public class DigestMenuItem extends ArchMenu
 				setValueAt(tbModel, i, HEAD_TIME, System.currentTimeMillis() - task.getStartTime());
 			}
 		}
+	}
+
+	@Override
+	protected boolean saveCfg(Object cfgObj)
+	{
+		return false;
+	}
+
+	@Override
+	protected Object loadCfg()
+	{
+		return null;
 	}
 }

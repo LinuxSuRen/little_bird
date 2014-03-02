@@ -20,8 +20,8 @@ public class SuRenTableCellRenderer extends DefaultTableCellRenderer
 	public Component getTableCellRendererComponent(JTable table, Object value,
 			boolean isSelected, boolean hasFocus, int row, int column)
 	{
-		Component component = super.getTableCellRendererComponent(table, value, isSelected, hasFocus,
-				row, column);
+		Component component = super.getTableCellRendererComponent(table, value,
+				isSelected, hasFocus, row, column);
 		
 		int columnCount = table.getColumnCount();
 		if(columnWidths.size() < columnCount)

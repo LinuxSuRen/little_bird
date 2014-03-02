@@ -2,8 +2,8 @@ package org.suren.littlebird.gui.menu;
 
 import org.suren.littlebird.annotation.Menu;
 
-@Menu(displayName = "File", parentMenu = Object.class, index = 0)
-public class FileMenu extends ArchMenu<Object>
+@Menu(displayName = "Network", parentMenu = Object.class, index = 5)
+public class NetworkMenu extends ArchMenu<Object>
 {
 
 	@Override
@@ -17,4 +17,5 @@ public class FileMenu extends ArchMenu<Object>
 	{
 		return null;
 	}
+
 }

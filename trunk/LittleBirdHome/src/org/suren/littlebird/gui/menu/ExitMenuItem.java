@@ -7,7 +7,7 @@ import org.suren.littlebird.annotation.Menu;
 import org.suren.littlebird.annotation.Menu.Action;
 
 @Menu(displayName = "Exit", parentMenu = FileMenu.class, index = 1)
-public class ExitMenuItem extends ArchMenu
+public class ExitMenuItem extends ArchMenu<Object>
 {
 	@Action
 	private ActionListener action = new ActionListener()
@@ -19,4 +19,16 @@ public class ExitMenuItem extends ArchMenu
 			logger.debug("ExitMenuItem");
 		}
 	};
+
+	@Override
+	protected boolean saveCfg(Object cfgObj)
+	{
+		return false;
+	}
+
+	@Override
+	protected Object loadCfg()
+	{
+		return null;
+	}
 }

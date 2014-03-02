@@ -45,7 +45,7 @@ import org.suren.littlebird.annotation.Menu.Action;
 import org.suren.littlebird.gui.MainFrame;
 
 @Menu(displayName = "FaceDetect", parentMenu = ImageMenu.class, index = 0)
-public class FaceDetectMenuItem extends ArchMenu
+public class FaceDetectMenuItem extends ArchMenu<Object>
 {
 	private JPanel panel = null;
 	private JToolBar toolBar;
@@ -434,5 +434,17 @@ public class FaceDetectMenuItem extends ArchMenu
 		{
 			dst.setLocation(target.getY() / dst.getY() * dst.getX(), target.getY());
 		}
+	}
+
+	@Override
+	protected boolean saveCfg(Object cfgObj)
+	{
+		return false;
+	}
+
+	@Override
+	protected Object loadCfg()
+	{
+		return null;
 	}
 }

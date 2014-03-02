@@ -7,7 +7,7 @@ import org.suren.littlebird.annotation.Menu;
 import org.suren.littlebird.annotation.Menu.Action;
 
 @Menu(displayName = "Encrypt", parentMenu = SecurityMenu.class, index = 1)
-public class EncyptMenuItem extends ArchMenu
+public class EncyptMenuItem extends ArchMenu<Object>
 {
 	@Action
 	private ActionListener action = new ActionListener()
@@ -17,4 +17,16 @@ public class EncyptMenuItem extends ArchMenu
 		{
 		}
 	};
+
+	@Override
+	protected boolean saveCfg(Object cfgObj)
+	{
+		return false;
+	}
+
+	@Override
+	protected Object loadCfg()
+	{
+		return null;
+	}
 }
