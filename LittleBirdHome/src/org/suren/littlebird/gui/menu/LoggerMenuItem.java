@@ -28,6 +28,8 @@ import org.suren.littlebird.gui.SuRenTableModel;
 import org.suren.littlebird.net.webservice.ClientProxy;
 import org.suren.littlebird.server.LoggerServer;
 import org.suren.littlebird.setting.LoggerMgrSetting;
+import org.suren.littlebird.setting.OsgiMgrSetting;
+import org.suren.littlebird.setting.SettingUtil;
 
 @Menu(displayName = "Logger", parentMenu = RemoteMenu.class, index = 2,
 		keyCode = KeyEvent.VK_L, modifiers = KeyEvent.CTRL_DOWN_MASK)
@@ -76,7 +78,7 @@ public class LoggerMenuItem extends ArchMenu<LoggerMgrSetting>
 		final JComboBox levelBox = new JComboBox();
 		JButton setLevelBut = new JButton("SetLevel");
 		final JComboBox filterBox = new JComboBox();
-		JButton reloadBut = new JButton("Reload");
+		final JButton reloadBut = new JButton("Reload");
 		
 		controlBar.add(levelBox);
 		controlBar.add(setLevelBut);
@@ -85,9 +87,13 @@ public class LoggerMenuItem extends ArchMenu<LoggerMgrSetting>
 		controlBar.add(reloadBut);
 		
 		levelBox.addItem(Level.ALL.toString());
+		levelBox.addItem(Level.TRACE.toString());
 		levelBox.addItem(Level.DEBUG.toString());
 		levelBox.addItem(Level.INFO.toString());
+		levelBox.addItem(Level.WARN.toString());
 		levelBox.addItem(Level.ERROR.toString());
+		levelBox.addItem(Level.FATAL.toString());
+		levelBox.addItem(Level.OFF.toString());
 		
 		setLevelBut.setMnemonic('s');
 		reloadBut.setMnemonic('r');
@@ -114,9 +120,10 @@ public class LoggerMenuItem extends ArchMenu<LoggerMgrSetting>
 					
 					LoggerServer loggerServer = (LoggerServer) factory.create();
 					
-					System.out.println(levelBox.getSelectedItem().toString() + "---" + value.toString() + "---" + row);
-					System.out.println(loggerServer.setLevel(value.toString(), levelBox.getSelectedItem().toString()));
+					loggerServer.setLevel(value.toString(), levelBox.getSelectedItem().toString());
 				}
+				
+				reloadBut.doClick();
 			}
 		});
 		
@@ -248,11 +255,20 @@ public class LoggerMenuItem extends ArchMenu<LoggerMgrSetting>
 	{
 		return false;
 	}
+	
+	private LoggerMgrSetting getLoggerCfg(String path)
+	{
+		SettingUtil<LoggerMgrSetting> settingUtil = new SettingUtil<LoggerMgrSetting>();
+		
+		LoggerMgrSetting data = settingUtil.load(path, LoggerMgrSetting.class);
+		
+		return data;
+	}
 
 	@Override
 	protected LoggerMgrSetting loadCfg()
 	{
-		return null;
+		return getLoggerCfg(LOGGER_CFG_PATH);
 	}
 
 }
