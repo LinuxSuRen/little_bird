@@ -236,4 +236,9 @@ public class DefaultBundleServer  implements BundleServer
 
 		return count;
 	}
+
+	public String getName()
+	{
+		return "bundle";
+	}
 }

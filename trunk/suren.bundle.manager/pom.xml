@@ -31,6 +31,8 @@
 					<artifactId>maven-deploy-plugin</artifactId>
 					<version>1.0</version>
 					<executions>
+						<!--
+						 -->
 						<execution>
 							<id>scp_push</id>
 							<phase>install</phase>
@@ -38,6 +40,10 @@
 								<goal>scp_push</goal>
 							</goals>
 							<configuration>
+								<host>10.0.31.249</host>
+								<user>root</user>
+								<password>sugon123</password>
+								<remotePath>/opt/gridview/bundles/application</remotePath>
 							</configuration>
 						</execution>
 						<execution>
@@ -68,5 +74,10 @@
 			<version>3.0.0-milestone1</version>
 		</dependency>
 		 -->
+		<dependency>
+			<groupId>log4j</groupId>
+			<artifactId>log4j</artifactId>
+			<version>1.2.17</version>
+		</dependency>
 	</dependencies>
 </project>
