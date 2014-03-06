@@ -88,6 +88,15 @@ public class SuRenTable extends JTable
 	
 	public Object getValueAt(int row, String columnName)
 	{
-		return getModel().getValueAt(row, columnName);
+		int index = getModel().getColumnIndex(columnName);
+		
+		if(index != -1)
+		{
+			return getValueAt(row, index);
+		}
+		else
+		{
+			return null;
+		}
 	}
 }

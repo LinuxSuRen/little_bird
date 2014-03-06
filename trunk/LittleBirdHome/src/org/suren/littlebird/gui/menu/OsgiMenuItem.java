@@ -596,7 +596,7 @@ public class OsgiMenuItem extends ArchMenu<OsgiMgrSetting>
 		for(int i = 0; i < rows.length; i++)
 		{
 			int row = rows[i];
-			Object value = table.getValueAt(row, 0);
+			Object value = table.getValueAt(row, HEAD_ID);
 			
 			try
 			{

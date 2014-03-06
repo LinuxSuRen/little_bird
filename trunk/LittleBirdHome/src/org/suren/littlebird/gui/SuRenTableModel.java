@@ -82,6 +82,18 @@ public class SuRenTableModel extends DefaultTableModel
 		return getValueAt(row, columnIndex.intValue());
 	}
 	
+	public int getColumnIndex(String columnName)
+	{
+		Map<String, Integer> columnNames = getColumnMap();
+		Integer columnIndex = columnNames.get(columnName);
+		if(columnIndex == null)
+		{
+			return -1;
+		}
+		
+		return columnIndex.intValue();
+	}
+	
 	public Map<String, Integer> getColumnMap()
 	{
 		int count = getColumnCount();
