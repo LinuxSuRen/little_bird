@@ -3,7 +3,7 @@ package org.suren.littlebird.server;
 import java.io.Serializable;
 import java.util.List;
 
-public interface BundleServer extends Serializable
+public interface BundleServer extends Serializable, Server
 {
 	public List<SuRenBundle> getAll();
 	public List<SuRenBundle> searchBy(String match);

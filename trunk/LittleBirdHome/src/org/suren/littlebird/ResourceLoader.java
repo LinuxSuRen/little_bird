@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.jar.JarEntry;
@@ -78,6 +79,8 @@ public class ResourceLoader
 				
 				while(true)
 				{
+					logger.debug("done : " + done.get() + "; size : " + classQueue.size());
+					
 					synchronized (service)
 					{
 						if(done.get() && classQueue.size() == 0)
@@ -89,7 +92,7 @@ public class ResourceLoader
 					Class<?> cls = null;
 					try
 					{
-						cls = classQueue.take();
+						cls = classQueue.poll(4000, TimeUnit.MILLISECONDS);
 					}
 					catch (InterruptedException e)
 					{
@@ -114,6 +117,7 @@ public class ResourceLoader
 						if(list == null)
 						{
 							list = new ArrayList<Class<?>>();
+							
 							result.get().put(anno, list);
 						}
 						
@@ -123,6 +127,8 @@ public class ResourceLoader
 						break;
 					}
 				}
+				
+				logger.info("discover annotation done.");
 			}
 		});
 	}
@@ -144,9 +150,9 @@ public class ResourceLoader
 				e.printStackTrace();
 			}
 			
-			if(res != null)
+			try
 			{
-				try
+				if(res != null)
 				{
 					while(res.hasMoreElements())
 					{
@@ -176,15 +182,24 @@ public class ResourceLoader
 						}
 					}
 				}
-				catch(UnsupportedEncodingException e)
-				{
-					e.printStackTrace();
-				}
 			}
-			
-			synchronized (service)
+			catch(UnsupportedEncodingException e)
 			{
-				done.set(true);
+				e.printStackTrace();
+			}
+			finally
+			{
+				synchronized (service)
+				{
+					done.set(true);
+				}
+				
+				synchronized (getInstance())
+				{
+					getInstance().notifyAll();
+				}
+				
+				logger.debug("findClassTask done.");
 			}
 		}
 	};
@@ -237,6 +252,8 @@ public class ResourceLoader
 			
 			return;
 		}
+		
+		logger.debug("jarFilter : " + file.getAbsolutePath());
 		
 		try
 		{

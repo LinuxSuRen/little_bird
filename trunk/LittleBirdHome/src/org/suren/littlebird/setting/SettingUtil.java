@@ -61,9 +61,9 @@ public class SettingUtil<T>
 			catch (IOException e)
 			{
 				e.printStackTrace();
+				
+				return false;
 			}
-			
-			return false;
 		}
 		
 		try
