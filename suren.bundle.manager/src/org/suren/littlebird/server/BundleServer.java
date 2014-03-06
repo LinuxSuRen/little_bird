@@ -3,10 +3,10 @@ package org.suren.littlebird.server;
 import java.io.Serializable;
 import java.util.List;
 
-public interface BundleServer extends Serializable
+public interface BundleServer extends Serializable, Server
 {
 	public List<SuRenBundle> getAll();
-	public List<SuRenBundle> searchBy(String match);
+	public List<SuRenBundle> searchBy(String search);
 	public List<SuRenBundle> matchBy(String regex);
 	public List<SuRenBundle> matchBy(String regex, boolean insensitive);
 	public List<SuRenBundle> matchBy(String regex, int flag);
