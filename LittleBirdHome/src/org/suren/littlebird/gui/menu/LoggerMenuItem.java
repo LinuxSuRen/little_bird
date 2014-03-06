@@ -28,7 +28,6 @@ import org.suren.littlebird.gui.SuRenTableModel;
 import org.suren.littlebird.net.webservice.ClientProxy;
 import org.suren.littlebird.server.LoggerServer;
 import org.suren.littlebird.setting.LoggerMgrSetting;
-import org.suren.littlebird.setting.OsgiMgrSetting;
 import org.suren.littlebird.setting.SettingUtil;
 
 @Menu(displayName = "Logger", parentMenu = RemoteMenu.class, index = 2,
@@ -36,6 +35,7 @@ import org.suren.littlebird.setting.SettingUtil;
 public class LoggerMenuItem extends ArchMenu<LoggerMgrSetting>
 {
 	private final String	LOGGER_CFG_PATH	= "logger_mgr_cfg.xml";
+	private final String	HEAD_NUM		= "name";
 	private final String	HEAD_NAME		= "name";
 	private final String	HEAD_LEVEL		= "level";
 	
@@ -123,7 +123,10 @@ public class LoggerMenuItem extends ArchMenu<LoggerMgrSetting>
 					loggerServer.setLevel(value.toString(), levelBox.getSelectedItem().toString());
 				}
 				
-				reloadBut.doClick();
+				if(rows.length > 0)
+				{
+					reloadBut.doClick();
+				}
 			}
 		});
 		
@@ -156,7 +159,8 @@ public class LoggerMenuItem extends ArchMenu<LoggerMgrSetting>
 
 	private void createCenter(SuRenTable table)
 	{
-		table.setHeaders(HEAD_NAME, HEAD_LEVEL);
+		table.setHeaders(HEAD_NUM, HEAD_NAME, HEAD_LEVEL);
+		table.setColumnSorterClass(0, Number.class);
 		
 		JScrollPane scrollPane = new JScrollPane(table);
 		panel.add(scrollPane, BorderLayout.CENTER);
@@ -198,6 +202,7 @@ public class LoggerMenuItem extends ArchMenu<LoggerMgrSetting>
 			
 			String name = names.get(i);
 			
+			item.add(i);
 			item.add(name);
 			item.add(loggerServer.getLevel(name));
 			
