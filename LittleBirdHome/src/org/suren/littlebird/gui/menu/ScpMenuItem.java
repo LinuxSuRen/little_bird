@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.Vector;
@@ -53,10 +52,8 @@ import org.suren.littlebird.gui.SuRenTableModel;
 import org.suren.littlebird.net.HomeScp;
 import org.suren.littlebird.net.ssh.SimpleSftpProgressMonitor;
 import org.suren.littlebird.net.ssh.SimpleUserInfo;
-import org.suren.littlebird.setting.OsgiMgrSetting;
 import org.suren.littlebird.setting.SettingUtil;
 import org.suren.littlebird.setting.SshSetting;
-import org.suren.littlebird.setting.SshSetting.Ssh;
 import org.suren.littlebird.thread.GeneralThread;
 
 import com.jcraft.jsch.ChannelSftp;

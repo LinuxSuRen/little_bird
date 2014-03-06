@@ -859,7 +859,7 @@ public class OsgiMenuItem extends ArchMenu<OsgiMgrSetting>
 			clearTable(osgiTable);
 		}
 		
-		ClientProxyFactoryBean factory = getClientProxy();
+		ClientProxyFactoryBean factory = null;
 		
 		try
 		{
@@ -944,7 +944,7 @@ public class OsgiMenuItem extends ArchMenu<OsgiMgrSetting>
 			throw new SuRenSettingException("webservice url or port is invalid.");
 		}
 		
-		String host = setting.getUrl() + ":" + setting.getPort() + "/greeter";
+		String host = setting.getUrl() + ":" + setting.getPort() + "/bundle";
 		if(!host.startsWith("http://") && !host.startsWith("https://"))
 		{
 			host = "http://" + host;

@@ -101,6 +101,19 @@ public class MainFrame extends JFrame
 				
 				while(!loader.isFinished())
 				{
+					logger.info("loading...");
+					
+					synchronized (loader)
+					{
+						try
+						{
+							loader.wait(1000);
+						}
+						catch (InterruptedException e)
+						{
+							e.printStackTrace();
+						}
+					}
 				}
 				
 				List<Class<?>> result = loader.getResult(Menu.class);
@@ -113,6 +126,8 @@ public class MainFrame extends JFrame
 				}
 				
 				tmpResult.addAll(result);
+				
+				logger.debug("menu num : " + tmpResult.size());
 				
 				JMenuBar menuBar = new JMenuBar();
 				Map<Class<?>, JMenuItem> menuMap = new HashMap<Class<?>, JMenuItem>();
