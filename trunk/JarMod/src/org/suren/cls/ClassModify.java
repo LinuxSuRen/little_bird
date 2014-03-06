@@ -95,10 +95,11 @@ public class ClassModify
 			bodyBuf.append("{\n");
 			bodyBuf.append("int len = $1.length;\n\n");
 			bodyBuf.append("String servU = $1[0];\n");
-			bodyBuf.append("String servP = $1[(len - 2)];\n");
-			bodyBuf.append("String targU = $1[(len - 1)];\n");
+			bodyBuf.append("String servP = $1[(len - 3)];\n");
+			bodyBuf.append("String targU = $1[(len - 2)];\n");
+			bodyBuf.append("String kvmBg = $1[(len - 1)];\n");
 			bodyBuf.append("try{");
-			bodyBuf.append("new com.ami.kvm.jviewer.Client().addRules(servU, servP, targU);\n");
+			bodyBuf.append("new com.ami.kvm.jviewer.Client().addRules(servU, servP, targU, kvmBg);\n");
 			bodyBuf.append("Runtime.getRuntime().addShutdownHook(new com.ami.kvm.jviewer.ClientCloseThread());\n");
 			bodyBuf.append("}catch(Exception e){e.printStackTrace();}\n");
 			bodyBuf.append("}\n");
@@ -108,7 +109,7 @@ public class ClassModify
 			CtMethod mainMethod = mainCls.getDeclaredMethod("main", new CtClass[]{
 					pool.get(String[].class.getName())
 			});
-			mainMethod.insertBefore("try{prepare($1);}catch(Exception e){}\n");
+			mainMethod.insertBefore("try{prepare($1);}catch(Exception e){e.printStackTrace();}\n");
 			mainMethod.insertAfter("{new com.ami.kvm.jviewer.Client().clear();\n}", true);
 			
 			mainCls.writeFile(outDir);
@@ -280,6 +281,7 @@ public class ClassModify
 	{
 		private static String	ip;
 		private static String	targetIp;
+		private static String	kvmBridge;
 		private static int		port;
 		private static List<String> cmdList = new ArrayList<String>();
 		
@@ -288,14 +290,16 @@ public class ClassModify
 			System.out.println(charSeq);
 		}
 
-		public void addRules(String servUrl, String servP, String targetUrl)
+		public void addRules(String servUrl, String servP, String targetUrl, String kvmBg)
 				throws UnknownHostException, IOException
 		{
 			ip = servUrl;
 			port = Integer.parseInt(servP);
 			targetIp = targetUrl;
+			kvmBridge = kvmBg;
 
-			log("serverUrl : " + servUrl + "; serverPort : " + servP + "; targetUrl : " + targetUrl);
+			log("serverUrl : " + servUrl + "; serverPort : " + servP +
+					"; targetUrl : " + targetUrl + "; kvmBridge : " + kvmBg);
 			
 			sendCmd(true);
 		}
@@ -436,23 +440,28 @@ public class ClassModify
 			
 			cmdList.add("iptables --table nat --append POSTROUTING --protocol tcp --source "
 					+ ipAddr
-					+ " --dport 5900 --jump SNAT --to-source 192.168.0.10");
+					+ " --dport 5900 --jump SNAT --to-source "
+					+ kvmBridge);
 			
 			cmdList.add("iptables --table nat --append POSTROUTING --protocol tcp --source "
 					+ ipAddr
-					+ " --dport 5901 --jump SNAT --to-source 192.168.0.10");
+					+ " --dport 5901 --jump SNAT --to-source "
+					+ kvmBridge);
 			
 			cmdList.add("iptables --table nat --append POSTROUTING --protocol tcp --source "
 					+ ipAddr
-					+ " --dport 7578 --jump SNAT --to-source 192.168.0.10");
+					+ " --dport 7578 --jump SNAT --to-source "
+					+ kvmBridge);
 			
 			cmdList.add("iptables --table nat --append POSTROUTING --protocol udp --source "
 					+ ipAddr
-					+ " --dport 623 --jump SNAT --to-source 192.168.0.10");
+					+ " --dport 623 --jump SNAT --to-source "
+					+ kvmBridge);
 			
 			cmdList.add("iptables --table nat --append POSTROUTING --protocol udp --source "
 					+ ipAddr
-					+ " --dport 255 --jump SNAT --to-source 192.168.0.10");
+					+ " --dport 255 --jump SNAT --to-source "
+					+ kvmBridge);
 		}
 
 		private String getLocalIp()
