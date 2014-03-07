@@ -8,10 +8,12 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.log4j.spi.LoggingEvent;
+import org.suren.littlebird.ArchServerListener;
 import org.suren.littlebird.ClientInfo;
 
 public class LogServer extends SimpleServer
 {
+	private LogServerListener logServerListener;
 
 	@Override
 	public boolean init(int port)
@@ -21,10 +23,15 @@ public class LogServer extends SimpleServer
 			return false;
 		}
 		
-		int capacity = 3;
+		int capacity = 13;
 		serviceQueue = new ArrayBlockingQueue<ClientInfo>(capacity);
 		
-		logger.info("mouse server init success.");
+		if(logServerListener == null)
+		{
+			setListener(null);
+		}
+		
+		logServerListener.printMessage("mouse server init success.");
 		
 		return true;
 	}
@@ -34,7 +41,7 @@ public class LogServer extends SimpleServer
 	{
 		if(!isInited())
 		{
-			logger.error("log server no inited.");
+			logServerListener.printMessage("log server no inited.");
 			
 			return;
 		}
@@ -55,7 +62,7 @@ public class LogServer extends SimpleServer
 					continue;
 				}
 				
-				logger.info("get ticket : " + info);
+				logServerListener.printMessage("get ticket : " + info);
 			}
 			catch (InterruptedException e1)
 			{
@@ -122,6 +129,7 @@ public class LogServer extends SimpleServer
 		catch (IOException e)
 		{
 			e.printStackTrace();
+			
 			return;
 		}
 		
@@ -140,7 +148,8 @@ public class LogServer extends SimpleServer
 				
 				if(!(obj instanceof LoggingEvent))
 				{
-					System.out.println("not correct object.");
+					logServerListener.printMessage("not correct object.");
+					
 					continue;
 				}
 				
@@ -160,11 +169,38 @@ public class LogServer extends SimpleServer
 				continue;
 			}
 			
-			if(serverListener != null && serverListener instanceof LogServerListener)
+			logServerListener.printMessage(source.getMessage().toString());
+			System.out.println(source.getMessage());
+		}
+	}
+
+	@Override
+	public void setListener(ArchServerListener listener)
+	{
+		if(listener != null && listener instanceof LogServerListener)
+		{
+			logServerListener = (LogServerListener) listener;
+		}
+		else
+		{
+			logServerListener = new LogServerListener()
 			{
-				((LogServerListener) serverListener).printMessage(source.getMessage().toString());
-				System.out.println(source.getMessage());
-			}
+				
+				@Override
+				public void onLine(ClientInfo clientInfo)
+				{
+				}
+				
+				@Override
+				public void offLine(ClientInfo clientInfo)
+				{
+				}
+				
+				@Override
+				public void printMessage(CharSequence msg)
+				{
+				}
+			};
 		}
 	}
 }
