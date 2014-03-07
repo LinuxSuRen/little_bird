@@ -75,10 +75,7 @@ public class ScpMenuItem extends ArchMenu<SshSetting>
 	
 	private final String HEAD_PATH = "path";
 	private final String HEAD_SIZE = "size";
-	private final String HEAD_TYPE = "type";
 	private final String HEAD_LEVEL = "level";
-	private final String HEAD_TIME = "time";
-	private final String HEAD_RESULT = "result";
 	
 	private final String SSH_CFG_PATH = "ssh_cfg.xml";
 	

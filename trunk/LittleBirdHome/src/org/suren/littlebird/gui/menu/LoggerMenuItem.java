@@ -1,17 +1,26 @@
 package org.suren.littlebird.gui.menu;
 
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.List;
 import java.util.Vector;
 
 import javax.swing.JButton;
+import javax.swing.JColorChooser;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
+import javax.swing.JLabel;
+import javax.swing.JMenuItem;
 import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
+import javax.swing.JSplitPane;
+import javax.swing.JTextArea;
 import javax.swing.JToolBar;
 import javax.swing.KeyStroke;
 import javax.swing.table.DefaultTableModel;
@@ -19,13 +28,17 @@ import javax.swing.table.TableModel;
 
 import org.apache.cxf.frontend.ClientProxyFactoryBean;
 import org.apache.log4j.Level;
+import org.suren.littlebird.ClientInfo;
 import org.suren.littlebird.annotation.Menu;
 import org.suren.littlebird.annotation.Menu.Action;
 import org.suren.littlebird.gui.FocusAndSelectListener;
 import org.suren.littlebird.gui.MainFrame;
 import org.suren.littlebird.gui.SuRenTable;
 import org.suren.littlebird.gui.SuRenTableModel;
+import org.suren.littlebird.gui.log.JTextAreaAppender;
 import org.suren.littlebird.net.webservice.ClientProxy;
+import org.suren.littlebird.server.LogServer;
+import org.suren.littlebird.server.LogServerListener;
 import org.suren.littlebird.server.LoggerServer;
 import org.suren.littlebird.setting.LoggerMgrSetting;
 import org.suren.littlebird.setting.SettingUtil;
@@ -35,11 +48,13 @@ import org.suren.littlebird.setting.SettingUtil;
 public class LoggerMenuItem extends ArchMenu<LoggerMgrSetting>
 {
 	private final String	LOGGER_CFG_PATH	= "logger_mgr_cfg.xml";
-	private final String	HEAD_NUM		= "name";
+	private final String	HEAD_NUM		= "num";
 	private final String	HEAD_NAME		= "name";
 	private final String	HEAD_LEVEL		= "level";
 	
 	protected JPanel	panel;
+	
+	private LogServerListener logServerListener;
 	
 	@Action
 	private ActionListener action = new ActionListener()
@@ -66,6 +81,9 @@ public class LoggerMenuItem extends ArchMenu<LoggerMgrSetting>
 
 	protected void init()
 	{
+		setStatusLabel(new JLabel());
+		panel.add(getStatusLabel(), BorderLayout.SOUTH);
+		
 		SuRenTable table = new SuRenTable();
 		createToolBar(table);
 		createCenter(table);
@@ -79,12 +97,15 @@ public class LoggerMenuItem extends ArchMenu<LoggerMgrSetting>
 		JButton setLevelBut = new JButton("SetLevel");
 		final JComboBox filterBox = new JComboBox();
 		final JButton reloadBut = new JButton("Reload");
+		JButton logServerBut = new JButton("LogServer");
 		
 		controlBar.add(levelBox);
 		controlBar.add(setLevelBut);
 		controlBar.addSeparator();
 		controlBar.add(filterBox);
 		controlBar.add(reloadBut);
+		controlBar.addSeparator();
+		controlBar.add(logServerBut);
 		
 		levelBox.addItem(Level.ALL.toString());
 		levelBox.addItem(Level.TRACE.toString());
@@ -144,8 +165,41 @@ public class LoggerMenuItem extends ArchMenu<LoggerMgrSetting>
 				}
 				else
 				{
-					reload(table, item.toString());
+					int count = reload(table, item.toString());
+					
+					if(count > 0)
+					{
+						save(item.toString());
+					}
 				}
+			}
+			
+			private void save(String item)
+			{
+				LoggerMgrSetting cfg = loadCfg();
+				
+				if(cfg == null)
+				{
+					cfg = new LoggerMgrSetting();
+				}
+				
+				cfg.addHistoryKeyword(item);
+				saveCfg(cfg);
+			}
+		});
+		
+		logServerBut.addActionListener(new ActionListener()
+		{
+			
+			@Override
+			public void actionPerformed(ActionEvent e)
+			{
+				LogServer server = new LogServer();
+				
+				server.setListener(logServerListener);
+				server.init(7890);
+				
+				new Thread(server, "hao").start();
 			}
 		});
 		
@@ -156,28 +210,173 @@ public class LoggerMenuItem extends ArchMenu<LoggerMgrSetting>
 		
 		panel.add(controlPanel, BorderLayout.NORTH);
 	}
-
+	
 	private void createCenter(SuRenTable table)
 	{
 		table.setHeaders(HEAD_NUM, HEAD_NAME, HEAD_LEVEL);
 		table.setColumnSorterClass(0, Number.class);
 		
 		JScrollPane scrollPane = new JScrollPane(table);
-		panel.add(scrollPane, BorderLayout.CENTER);
+
+		JTextArea logArea = new JTextArea();
+		JScrollPane logScroll = new JScrollPane(logArea);
+		final JTextAreaAppender appender = new JTextAreaAppender();
+		appender.setTargetArea(logArea);
+		
+		createTextPopuMenu(logArea);
+		
+		JSplitPane loggerListSplit = new JSplitPane(
+				JSplitPane.HORIZONTAL_SPLIT,
+				scrollPane,
+				new JScrollPane(new SuRenTable()));
+		setLocation(loggerListSplit, 0.8);
+		
+		JSplitPane centerSplit = new JSplitPane(
+				JSplitPane.VERTICAL_SPLIT,
+				loggerListSplit,
+				logScroll);
+		setLocation(centerSplit, 0.8);
+		
+		logServerListener = new LogServerListener()
+		{
+			
+			@Override
+			public void onLine(ClientInfo clientInfo)
+			{
+			}
+			
+			@Override
+			public void offLine(ClientInfo clientInfo)
+			{
+			}
+			
+			@Override
+			public void printMessage(CharSequence msg)
+			{
+				appender.appendLine(msg);
+			}
+		};
+		
+		panel.add(centerSplit, BorderLayout.CENTER);
 	}
 
-	private void reload(SuRenTable table)
+	private void createTextPopuMenu(final JTextArea logArea)
 	{
-		reload(table, null, true);
+		if(logArea == null)
+		{
+			return;
+		}
+		
+		final JPopupMenu menu = new JPopupMenu();
+		
+		JMenuItem lineWrapItem = new JMenuItem("LineWrap");
+		JMenuItem backColorItem = new JMenuItem("BackColor");
+		JMenuItem foreColorItem = new JMenuItem("ForeColor");
+		
+		menu.add(lineWrapItem);
+		menu.add(backColorItem);
+		menu.add(foreColorItem);
+		
+		lineWrapItem.addActionListener(new ActionListener()
+		{
+			
+			@Override
+			public void actionPerformed(ActionEvent e)
+			{
+				logArea.setLineWrap(!logArea.getLineWrap());
+			}
+		});
+		
+		backColorItem.addActionListener(new ActionListener()
+		{
+			
+			@Override
+			public void actionPerformed(ActionEvent e)
+			{
+				Color color = JColorChooser.showDialog(logArea,
+						"PickColor", Color.PINK);
+				
+				logArea.setBackground(color);
+			}
+		});
+		
+		foreColorItem.addActionListener(new ActionListener()
+		{
+			
+			@Override
+			public void actionPerformed(ActionEvent e)
+			{
+				Color color = JColorChooser.showDialog(logArea,
+						"PickColor", Color.PINK);
+				
+				logArea.setForeground(color);
+			}
+		});
+		
+		logArea.addMouseListener(new MouseAdapter()
+		{
+
+			@Override
+			public void mouseReleased(MouseEvent e)
+			{
+				int code = e.getButton();
+				Object source = e.getSource();
+				
+				if(!(source instanceof JTextArea))
+				{
+					return;
+				}
+				
+				if(code != MouseEvent.BUTTON3)
+				{
+					return;
+				}
+				
+				menu.show((JTextArea) source, e.getX(), e.getY());
+			}
+		});
+	}
+
+	private void setLocation(JSplitPane splitPane, double location)
+	{
+		if(splitPane == null || location < 0 || location > 1)
+		{
+			return;
+		}
+		
+		MainFrame mainFrame = MainFrame.getInstance();
+		int parentSize = -1;
+		int divWidth = splitPane.getDividerSize();
+		
+		switch(splitPane.getOrientation())
+		{
+			case JSplitPane.HORIZONTAL_SPLIT:
+				parentSize = mainFrame.getContentPanel().getWidth();
+				break;
+			case JSplitPane.VERTICAL_SPLIT:
+				parentSize = mainFrame.getContentPanel().getHeight();
+				break;
+			default:
+				return;
+		}
+		
+		splitPane.setDividerLocation((int)((parentSize - divWidth) * location));
+	}
+
+	private int reload(SuRenTable table)
+	{
+		return reload(table, null, true);
 	}
 	
-	private void reload(SuRenTable table, String filter)
+	private int reload(SuRenTable table, String filter)
 	{
-		reload(table, filter, true);
+		return reload(table, filter, true);
 	}
 	
-	private void reload(SuRenTable table, String filter, boolean reload)
+	private int reload(SuRenTable table, String filter, boolean reload)
 	{
+		updateStatus("10.0.31.249");
+		updateStatus("10.0.31.249");
 		ClientProxy<LoggerServer> proxy =
 				new ClientProxy<LoggerServer>("10.0.31.249", 9789, "logger");
 		ClientProxyFactoryBean factory = proxy.getClientProxy(LoggerServer.class);
@@ -209,6 +408,8 @@ public class LoggerMenuItem extends ArchMenu<LoggerMgrSetting>
 			items[i] = item;
 		}
 		fillTable(table, items);
+		
+		return len;
 	}
 
 	private void fillTable(SuRenTable table, Vector<Object> ... datas)
@@ -258,7 +459,9 @@ public class LoggerMenuItem extends ArchMenu<LoggerMgrSetting>
 	@Override
 	protected boolean saveCfg(LoggerMgrSetting cfgObj)
 	{
-		return false;
+		SettingUtil<LoggerMgrSetting> settingUtil = new SettingUtil<LoggerMgrSetting>();
+		
+		return settingUtil.save(cfgObj, LOGGER_CFG_PATH, LoggerMgrSetting.class);
 	}
 	
 	private LoggerMgrSetting getLoggerCfg(String path)

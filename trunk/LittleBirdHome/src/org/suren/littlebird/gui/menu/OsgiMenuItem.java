@@ -1,7 +1,9 @@
 package org.suren.littlebird.gui.menu;
 
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Component;
+import java.awt.ComponentOrientation;
 import java.awt.Container;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
@@ -106,6 +108,9 @@ public class OsgiMenuItem extends ArchMenu<OsgiMgrSetting>
 		{
 			return;
 		}
+		
+		setStatusLabel(new JLabel());
+		panel.add(getStatusLabel(), BorderLayout.SOUTH);
 		
 		setting = new Setting();
 		
@@ -346,6 +351,8 @@ public class OsgiMenuItem extends ArchMenu<OsgiMgrSetting>
 			}
 			
 			urlField.setSelectedItem(data.getHost());
+			
+			updateStatus(data.getHost());
 		}
 		
 		saveBut.addActionListener(new ActionListener()
@@ -397,7 +404,13 @@ public class OsgiMenuItem extends ArchMenu<OsgiMgrSetting>
 				osgiSetting.setPort(setting.getPort());
 				osgiSetting.addHistoryUrl(setting.getUrl());
 				
-				return saveCfg(osgiSetting);
+				boolean result = saveCfg(osgiSetting);
+				if(result)
+				{
+					updateStatus(setting.getUrl());
+				}
+				
+				return result;
 			}
 		});
 		
@@ -411,15 +424,29 @@ public class OsgiMenuItem extends ArchMenu<OsgiMgrSetting>
 		installBar.setVisible(false);
 
 		final JCheckBox remote = new JCheckBox("remote");
-		JTextField pathField = new JTextField();
+		JComboBox pathBox = new JComboBox();
 		final DefaultListModel listModel = new DefaultListModel();
 		JList remotePathList = new JList(listModel);
 		remotePathList.setVisibleRowCount(5);
 		
-		pathField.setToolTipText("Ctrl+L");
-		pathField.registerKeyboardAction(new FocusAndSelectListener(),
+		pathBox.setEditable(true);
+		pathBox.setToolTipText("Ctrl+L");
+		pathBox.registerKeyboardAction(new FocusAndSelectListener(),
 				KeyStroke.getKeyStroke(KeyEvent.VK_L, KeyEvent.CTRL_DOWN_MASK),
 				JComponent.WHEN_IN_FOCUSED_WINDOW);
+		
+		OsgiMgrSetting osgiCfg = loadCfg();
+		if(osgiCfg != null)
+		{
+			Set<String> hisPath = osgiCfg.getHistoryRemote();
+			if(hisPath != null)
+			{
+				for(String path : hisPath)
+				{
+					pathBox.addItem(path);
+				}
+			}
+		}
 		
 		remote.addItemListener(new ItemListener()
 		{
@@ -447,23 +474,30 @@ public class OsgiMenuItem extends ArchMenu<OsgiMgrSetting>
 			}
 		});
 		
-		pathField.addActionListener(new ActionListener()
+		pathBox.addActionListener(new ActionListener()
 		{
 			
 			@Override
 			public void actionPerformed(ActionEvent e)
 			{
+				Object source = e.getSource();
 				String cmd = e.getActionCommand();
 				
-				if(!listModel.contains(cmd))
+				if("comboBoxEdited".equals(cmd) && source instanceof JComboBox
+						&& remote.isSelected())
 				{
-					listModel.addElement(cmd);
+					String path = ((JComboBox) source).getSelectedItem().toString();
 					
-				}
-				
-				if(remote.isSelected())
-				{
-					data.add(cmd);
+					OsgiMgrSetting osgiCfg = loadCfg();
+					osgiCfg.addHistoryRemote(path);
+					saveCfg(osgiCfg);
+					
+					data.add(path);
+					
+					if(!listModel.contains(path))
+					{
+						listModel.addElement(path);
+					}
 				}
 			}
 		});
@@ -490,21 +524,21 @@ public class OsgiMenuItem extends ArchMenu<OsgiMgrSetting>
 			}
 		});
 		
-		JPanel remoteTypePanel = new JPanel();
-		remoteTypePanel.add(remote);
-		
-		JPanel pathPanel = new JPanel();
-		pathPanel.setLayout(new BoxLayout(pathPanel, BoxLayout.Y_AXIS));
-		pathPanel.add(pathField);
 		JPanel listPanel = new JPanel();
 		listPanel.setLayout(new FlowLayout(FlowLayout.LEFT));
 		listPanel.add(remotePathList);
+		
+		JPanel pathPanel = new JPanel();
+		pathPanel.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
+		pathPanel.setBackground(Color.BLACK);
+		pathPanel.setLayout(new BoxLayout(pathPanel, BoxLayout.Y_AXIS));
+		pathPanel.add(pathBox);
 		pathPanel.add(listPanel);
 		
 		JPanel remotePanel = new JPanel();
 		remotePanel.setLayout(new BoxLayout(remotePanel, BoxLayout.X_AXIS));
-		remotePanel.add(remoteTypePanel);
 		remotePanel.add(pathPanel);
+		remotePanel.add(remote);
 		
 		JButton cancelBut = new JButton("Cancel");
 		JButton clearBut = new JButton("Clear");
