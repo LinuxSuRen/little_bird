@@ -37,6 +37,15 @@ public class JTextAreaAppender extends DefaultAppender
 			}
 		}
 	}
+	
+	public void appendLine(CharSequence charSeq)
+	{
+		StringBuffer buffer = new StringBuffer(charSeq);
+		
+		buffer.append("\n");
+		
+		append(buffer);
+	}
 
 	public JTextArea getTargetArea()
 	{
