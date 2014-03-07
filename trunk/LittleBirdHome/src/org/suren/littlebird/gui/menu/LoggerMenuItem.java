@@ -2,6 +2,7 @@ package org.suren.littlebird.gui.menu;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
@@ -33,6 +34,7 @@ import org.suren.littlebird.annotation.Menu;
 import org.suren.littlebird.annotation.Menu.Action;
 import org.suren.littlebird.gui.FocusAndSelectListener;
 import org.suren.littlebird.gui.MainFrame;
+import org.suren.littlebird.gui.SuRenStatusButton;
 import org.suren.littlebird.gui.SuRenTable;
 import org.suren.littlebird.gui.SuRenTableModel;
 import org.suren.littlebird.gui.log.JTextAreaAppender;
@@ -51,6 +53,10 @@ public class LoggerMenuItem extends ArchMenu<LoggerMgrSetting>
 	private final String	HEAD_NUM		= "num";
 	private final String	HEAD_NAME		= "name";
 	private final String	HEAD_LEVEL		= "level";
+	
+	private final int LogServerStarted = 0x1;
+	private final int LogServerStoped = 0x2;
+	private final int LogServerBind = 0x3;
 	
 	protected JPanel	panel;
 	
@@ -87,17 +93,23 @@ public class LoggerMenuItem extends ArchMenu<LoggerMgrSetting>
 		SuRenTable table = new SuRenTable();
 		createToolBar(table);
 		createCenter(table);
+		createCenterPopuMenu(table);
 	}
 
 	private void createToolBar(final SuRenTable table)
 	{
 		JToolBar controlBar = new JToolBar();
+		controlBar.setLayout(new FlowLayout(FlowLayout.LEFT));
 
 		final JComboBox levelBox = new JComboBox();
 		JButton setLevelBut = new JButton("SetLevel");
 		final JComboBox filterBox = new JComboBox();
 		final JButton reloadBut = new JButton("Reload");
-		JButton logServerBut = new JButton("LogServer");
+		SuRenStatusButton logSerControlBut = new SuRenStatusButton();
+		
+		logSerControlBut.addStatus(LogServerStarted, "Stop");
+		logSerControlBut.addStatus(LogServerStoped, "Start");
+		logSerControlBut.setStatus(LogServerStoped);
 		
 		controlBar.add(levelBox);
 		controlBar.add(setLevelBut);
@@ -105,7 +117,7 @@ public class LoggerMenuItem extends ArchMenu<LoggerMgrSetting>
 		controlBar.add(filterBox);
 		controlBar.add(reloadBut);
 		controlBar.addSeparator();
-		controlBar.add(logServerBut);
+		controlBar.add(logSerControlBut);
 		
 		levelBox.addItem(Level.ALL.toString());
 		levelBox.addItem(Level.TRACE.toString());
@@ -188,18 +200,68 @@ public class LoggerMenuItem extends ArchMenu<LoggerMgrSetting>
 			}
 		});
 		
-		logServerBut.addActionListener(new ActionListener()
+		logSerControlBut.addActionListener(new ActionListener()
 		{
 			
 			@Override
 			public void actionPerformed(ActionEvent e)
 			{
-				LogServer server = new LogServer();
+				Object source = e.getSource();
+				SuRenStatusButton button;
+				if(!(source instanceof SuRenStatusButton))
+				{
+					return;
+				}
 				
-				server.setListener(logServerListener);
-				server.init(7890);
+				button = (SuRenStatusButton) source;
+				Object serverBind = button.getTarget(LogServerBind);
+				LogServer server;
+				if(serverBind == null)
+				{
+					server = new LogServer();
+					
+					button.addTarget(LogServerBind, server);
+				}
+				else if(serverBind instanceof LogServer)
+				{
+					server = (LogServer) serverBind;
+				}
+				else
+				{
+					System.out.println("LogServer bind error.");
+					
+					return;
+				}
 				
-				new Thread(server, "hao").start();
+				switch(button.getStatus())
+				{
+					case LogServerStoped:
+						server.setListener(logServerListener);
+						server.init(7890);
+						
+						try
+						{
+							new Thread(server, "LogServer").start();
+							
+							button.setStatus(LogServerStarted);
+						}
+						catch(IllegalThreadStateException e1)
+						{
+							e1.printStackTrace();
+						}
+						
+						break;
+					case LogServerStarted:
+						if(server.stop())
+						{
+							button.setStatus(LogServerStoped);
+						}
+						
+						break;
+					default:
+						System.err.println("unknow logServer status.");
+						break;
+				}
 			}
 		});
 		
@@ -258,6 +320,68 @@ public class LoggerMenuItem extends ArchMenu<LoggerMgrSetting>
 		};
 		
 		panel.add(centerSplit, BorderLayout.CENTER);
+	}
+
+	private void createCenterPopuMenu(final SuRenTable table)
+	{
+		if(table == null)
+		{
+			return;
+		}
+		
+		final JPopupMenu menu = new JPopupMenu();
+		
+		JMenuItem addBridgeBut = new JMenuItem("AddBridge");
+		JMenuItem delBridgeBut = new JMenuItem("DelBridge");
+		
+		menu.add(addBridgeBut);
+		menu.add(delBridgeBut);
+		
+		table.addMouseListener(new MouseAdapter()
+		{
+
+			@Override
+			public void mouseReleased(MouseEvent e)
+			{
+				int code = e.getButton();
+				if(code != MouseEvent.BUTTON3)
+				{
+					return;
+				}
+				
+				int row = table.getSelectedRow();
+				if(row < 0)
+				{
+					return;
+				}
+				
+				menu.show(table, e.getX(), e.getY());
+			}
+		});
+		
+		addBridgeBut.addActionListener(new ActionListener()
+		{
+			
+			@Override
+			public void actionPerformed(ActionEvent e)
+			{
+				int row = table.getSelectedRow();
+				if(row < 0)
+				{
+					return;
+				}
+				
+				Object name = table.getValueAt(row, HEAD_NAME);
+				ClientProxy<LoggerServer> proxy =
+						new ClientProxy<LoggerServer>("10.0.31.249", 9789, "logger");
+				ClientProxyFactoryBean factory = proxy.getClientProxy(LoggerServer.class);
+				
+				LoggerServer loggerServer = (LoggerServer) factory.create();
+				
+				boolean result = loggerServer.addBridge(name.toString(), "10.0.31.249", 7890);
+				System.out.println("add bridge result : " + result);
+			}
+		});
 	}
 
 	private void createTextPopuMenu(final JTextArea logArea)
@@ -375,7 +499,6 @@ public class LoggerMenuItem extends ArchMenu<LoggerMgrSetting>
 	
 	private int reload(SuRenTable table, String filter, boolean reload)
 	{
-		updateStatus("10.0.31.249");
 		updateStatus("10.0.31.249");
 		ClientProxy<LoggerServer> proxy =
 				new ClientProxy<LoggerServer>("10.0.31.249", 9789, "logger");
