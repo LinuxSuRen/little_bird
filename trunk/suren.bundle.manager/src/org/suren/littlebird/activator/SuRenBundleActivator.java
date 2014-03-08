@@ -5,6 +5,7 @@ import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.List;
 
+import org.apache.log4j.Logger;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
@@ -19,8 +20,9 @@ public class SuRenBundleActivator implements BundleActivator
 	private BundleContext context;
 	private List<ServiceRegistration> registrationList;
 
-	private final String addrKey = "osgi.remote.configuration.pojo.address";
 	private final String addrValue = "http://localhost:9789/";
+	
+	private Logger logger = Logger.getLogger(SuRenBundleActivator.class);
 
 	public void start(BundleContext context) throws Exception
 	{
@@ -44,6 +46,8 @@ public class SuRenBundleActivator implements BundleActivator
 
 		register(bundleServer, BundleServer.class);
 		register(loggerServer, LoggerServer.class);
+		
+		logger.info("SuRen Bundle Started.");
 	}
 
 	private void register(Server server, Class<?> clazz)
@@ -55,9 +59,16 @@ public class SuRenBundleActivator implements BundleActivator
 
 		Dictionary<String, String> properties = new Hashtable<String, String>();
 
-		properties.put("osgi.remote.interfaces", "*");
-		properties.put("osgi.remote.configuration.type", "pojo");
-		properties.put(addrKey, addrValue + server.getName());
+//		properties.put("osgi.remote.interfaces", "*");
+//		properties.put("osgi.remote.configuration.type", "pojo");
+//		properties.put(addrKey, addrValue + server.getName());
+		
+		properties.put("service.exported.interfaces", "*");
+		properties.put("service.exported.intents", "SOAP");
+		properties.put("service.exported.configs", "org.apache.cxf.ws");
+		properties.put("org.apache.cxf.ws.address", addrValue + server.getName());
+		
+		logger.info(addrValue + server.getName());
 
 		ServiceRegistration registration = context.registerService(clazz.getName(), server, properties);
 		registrationList.add(registration);
@@ -72,5 +83,7 @@ public class SuRenBundleActivator implements BundleActivator
 				registration.unregister();
 			}
 		}
+		
+		logger.info("SuRen Bundle Stoped.");
 	}
 }
