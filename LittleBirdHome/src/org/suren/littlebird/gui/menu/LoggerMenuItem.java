@@ -490,7 +490,7 @@ public class LoggerMenuItem extends ArchMenu<LoggerMgrSetting>
 			@Override
 			public void printMessage(CharSequence msg)
 			{
-				appender.appendLine(msg);
+				appender.append(msg);
 			}
 		};
 		
