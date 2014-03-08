@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.log4j.Logger;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.BundleException;
@@ -20,6 +21,8 @@ public class DefaultBundleServer  implements BundleServer
 	private final int BundleStop = 0x2;
 	private final int BundleUninstall = 0x3;
 	private final int BundleUpdate = 0x4;
+	
+	private Logger logger = Logger.getLogger(DefaultBundleServer.class);
 
 	public DefaultBundleServer(BundleContext context)
 	{
@@ -43,6 +46,8 @@ public class DefaultBundleServer  implements BundleServer
 
 			surenBundles.add(surenBundle);
 		}
+		
+		logger.debug("bundles.size : " + bundles.length);
 
 		return surenBundles;
 	}
