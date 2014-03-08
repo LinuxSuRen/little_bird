@@ -7,6 +7,7 @@ import java.net.Socket;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.log4j.PatternLayout;
 import org.apache.log4j.spi.LoggingEvent;
 import org.suren.littlebird.ArchServerListener;
 import org.suren.littlebird.ClientInfo;
@@ -14,6 +15,9 @@ import org.suren.littlebird.ClientInfo;
 public class LogServer extends SimpleServer
 {
 	private LogServerListener logServerListener;
+	
+	private String logLayout;
+	private PatternLayout patternLayout;
 
 	@Override
 	public boolean init(int port)
@@ -31,7 +35,8 @@ public class LogServer extends SimpleServer
 			setListener(null);
 		}
 		
-		logServerListener.printMessage("mouse server init success.");
+		patternLayout = new PatternLayout(logLayout);
+		logServerListener.printMessage("log server init success.");
 		
 		return true;
 	}
@@ -51,6 +56,8 @@ public class LogServer extends SimpleServer
 			ServerSocket server = serverRef.get();
 			if(server == null || server.isClosed() || !server.isBound())
 			{
+				System.err.println("no server socket." + server);
+				
 				break;
 			}
 			
@@ -86,6 +93,8 @@ public class LogServer extends SimpleServer
 			info.setSocket(client);
 			process(info);
 		}
+		
+		System.err.println("log server break done.");
 	}
 
 	private void process(final ClientInfo info)
@@ -136,7 +145,8 @@ public class LogServer extends SimpleServer
 		while(true)
 		{
 			if(client.isClosed() || client.isInputShutdown()
-					|| client.isOutputShutdown())
+					|| client.isOutputShutdown()
+					|| client.isInputShutdown())
 			{
 				break;
 			}
@@ -158,6 +168,8 @@ public class LogServer extends SimpleServer
 			catch (IOException e)
 			{
 				e.printStackTrace();
+				
+				break;
 			}
 			catch (ClassNotFoundException e)
 			{
@@ -169,8 +181,7 @@ public class LogServer extends SimpleServer
 				continue;
 			}
 			
-			logServerListener.printMessage(source.getMessage().toString());
-			System.out.println(source.getMessage());
+			logServerListener.printMessage(patternLayout.format(source));
 		}
 	}
 
@@ -202,5 +213,15 @@ public class LogServer extends SimpleServer
 				}
 			};
 		}
+	}
+
+	public String getLogLayout()
+	{
+		return logLayout;
+	}
+
+	public void setLogLayout(String logLayout)
+	{
+		this.logLayout = logLayout;
 	}
 }

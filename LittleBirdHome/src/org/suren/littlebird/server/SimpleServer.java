@@ -50,6 +50,18 @@ public abstract class SimpleServer implements ArchServer
 		{
 			e.printStackTrace();
 			
+			if(server != null)
+			{
+				try
+				{
+					server.close();
+				}
+				catch (IOException e1)
+				{
+					e1.printStackTrace();
+				}
+			}
+			
 			return false;
 		}
 		
@@ -148,5 +160,10 @@ public abstract class SimpleServer implements ArchServer
 		logger.info("server stoped.");
 		
 		return true;
+	}
+	
+	public ServerSocket getOriginal()
+	{
+		return serverRef.get();
 	}
 }
