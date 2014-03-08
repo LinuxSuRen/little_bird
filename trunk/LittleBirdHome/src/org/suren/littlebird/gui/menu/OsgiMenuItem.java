@@ -400,6 +400,11 @@ public class OsgiMenuItem extends ArchMenu<OsgiMgrSetting>
 				}
 				
 				OsgiMgrSetting osgiSetting = loadCfg();
+				if(osgiSetting == null)
+				{
+					osgiSetting = new OsgiMgrSetting();
+				}
+				
 				osgiSetting.setHost(setting.getUrl());
 				osgiSetting.setPort(setting.getPort());
 				osgiSetting.addHistoryUrl(setting.getUrl());

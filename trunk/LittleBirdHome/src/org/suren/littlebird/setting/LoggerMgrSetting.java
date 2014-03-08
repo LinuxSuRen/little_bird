@@ -16,6 +16,8 @@ public class LoggerMgrSetting
 	private boolean lineWrap;
 	private int backColor;
 	private int foreColor;
+	private int consoleBuffer;
+	private String logLayout;
 	private Set<String> historyKeyword;
 	@XmlElement
 	public String getHost()
@@ -70,6 +72,29 @@ public class LoggerMgrSetting
 	public void setForeColor(int foreColor)
 	{
 		this.foreColor = foreColor;
+	}
+	@XmlElement
+	public int getConsoleBuffer()
+	{
+		if(consoleBuffer < 20)
+		{
+			setConsoleBuffer(20);
+		}
+		
+		return consoleBuffer;
+	}
+	public void setConsoleBuffer(int consoleBuffer)
+	{
+		this.consoleBuffer = consoleBuffer;
+	}
+	@XmlElement
+	public String getLogLayout()
+	{
+		return logLayout;
+	}
+	public void setLogLayout(String logLayout)
+	{
+		this.logLayout = logLayout;
 	}
 	@XmlElementWrapper
 	@XmlElement(name = "keyword")
