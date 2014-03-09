@@ -13,8 +13,8 @@ public interface LoggerServer extends Serializable, Server
 
 	public boolean addBridge(String name, String host, int port);
 	public boolean removeBridge(String name, String host, int port);
-	public boolean clearBridges(String name);
-	public boolean clearBridges();
+	public int clearBridges(String name);
+	public int clearBridges();
 	public List<String> getBridges(String name);
 	public List<String> getBridges();
 }

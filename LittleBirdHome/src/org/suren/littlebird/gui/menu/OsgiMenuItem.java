@@ -21,6 +21,8 @@ import java.util.Collection;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import java.util.Vector;
 
@@ -47,6 +49,10 @@ import javax.swing.table.TableModel;
 
 import org.apache.cxf.aegis.databinding.AegisDatabinding;
 import org.apache.cxf.frontend.ClientProxyFactoryBean;
+import org.apache.cxf.interceptor.Fault;
+import org.apache.cxf.interceptor.Interceptor;
+import org.apache.cxf.message.Message;
+import org.apache.cxf.phase.PhaseInterceptor;
 import org.suren.littlebird.annotation.Menu;
 import org.suren.littlebird.annotation.Menu.Action;
 import org.suren.littlebird.exception.SuRenSettingException;
@@ -839,7 +845,7 @@ public class OsgiMenuItem extends ArchMenu<OsgiMgrSetting>
 				
 				SuRenBundle bundle = server.getById(id);
 				@SuppressWarnings("unchecked")
-				Vector<Object>[] data = new Vector[5];
+				Vector<Object>[] data = new Vector[6];
 				
 				SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
 				
@@ -847,12 +853,13 @@ public class OsgiMenuItem extends ArchMenu<OsgiMgrSetting>
 				data[1] = convertToVector("LastModified:", format.format(bundle.getLastModified()));
 				data[2] = convertToVector("State:", bundle.getState());
 				data[3] = convertToVector("Location:", bundle.getLocation());
+				data[4] = convertToVector("StartLevel:", bundle.getLevel());
 				
 				String headersStr = Arrays.toString(bundle.getHeaders());
 				headersStr = headersStr.replace(";, ", "<br/>");
 				headersStr = headersStr.replace("[", "");
 				headersStr = headersStr.replace("]", "");
-				data[4] = convertToVector("Headers:", "<html>" + headersStr + "</html>");
+				data[5] = convertToVector("Headers:", "<html>" + headersStr + "</html>");
 				
 				fillTable(detailInfoTable, true, data);
 				
@@ -906,6 +913,7 @@ public class OsgiMenuItem extends ArchMenu<OsgiMgrSetting>
 		}
 		catch(SuRenSettingException e)
 		{
+			e.printStackTrace();
 		}
 		
 		if(factory == null)

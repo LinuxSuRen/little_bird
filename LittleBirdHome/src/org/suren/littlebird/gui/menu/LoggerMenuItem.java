@@ -2,6 +2,8 @@ package org.suren.littlebird.gui.menu;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Component;
+import java.awt.Container;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
@@ -29,6 +31,9 @@ import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.JToolBar;
 import javax.swing.KeyStroke;
+import javax.swing.plaf.SplitPaneUI;
+import javax.swing.plaf.basic.BasicSplitPaneDivider;
+import javax.swing.plaf.basic.BasicSplitPaneUI;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableModel;
 
@@ -58,6 +63,7 @@ public class LoggerMenuItem extends ArchMenu<LoggerMgrSetting>
 	private final String	HEAD_NUM		= "num";
 	private final String	HEAD_NAME		= "name";
 	private final String	HEAD_LEVEL		= "level";
+	private final String	HEAD_VALUE		= "value";
 	
 	private final int LogServerStarted = 0x1;
 	private final int LogServerStoped = 0x2;
@@ -438,13 +444,14 @@ public class LoggerMenuItem extends ArchMenu<LoggerMgrSetting>
 	
 	private void createCenter(SuRenTable table)
 	{
+		final SuRenTable detailTable = new SuRenTable();
+		
 		table.setHeaders(HEAD_NUM, HEAD_NAME, HEAD_LEVEL);
 		table.setColumnSorterClass(0, Number.class);
 		
-		JScrollPane scrollPane = new JScrollPane(table);
-
+		detailTable.setHeaders(HEAD_NAME, HEAD_VALUE);
+		
 		JTextArea logArea = new JTextArea();
-		JScrollPane logScroll = new JScrollPane(logArea);
 		final JTextAreaAppender appender = new JTextAreaAppender();
 		appender.setTargetArea(logArea);
 		
@@ -464,15 +471,107 @@ public class LoggerMenuItem extends ArchMenu<LoggerMgrSetting>
 		
 		JSplitPane loggerListSplit = new JSplitPane(
 				JSplitPane.HORIZONTAL_SPLIT,
-				scrollPane,
-				new JScrollPane(new SuRenTable()));
+				new JScrollPane(table),
+				new JScrollPane(detailTable));
 		setLocation(loggerListSplit, 0.8);
 		
 		JSplitPane centerSplit = new JSplitPane(
 				JSplitPane.VERTICAL_SPLIT,
 				loggerListSplit,
-				logScroll);
-		setLocation(centerSplit, 0.8);
+				new JScrollPane(logArea));
+		setLocation(centerSplit, 0.6);
+		
+		table.addMouseListener(new MouseAdapter()
+		{
+			private int rowId;
+			private JButton lastBut;
+			
+			@Override
+			public void mouseClicked(MouseEvent e)
+			{
+				int count = e.getClickCount();
+				Object source = e.getSource();
+				
+				if(count == 2 && source instanceof SuRenTable)
+				{
+					SuRenTable table = (SuRenTable) source;
+					int id = table.getSelectedRow();
+					if(id == rowId)
+					{
+						rowId = -1;
+						hideDetail();
+					}
+					else
+					{
+						rowId = id;
+						showDetial();
+					}
+					
+					Object nameValue = table.getValueAt(id, HEAD_NAME);
+					getDetailInfo(nameValue);
+				}
+			}
+			
+			private void showDetial()
+			{
+				detailControl(0);
+			}
+			
+			private void hideDetail()
+			{
+				detailControl(1);
+			}
+			
+			private void detailControl(int code)
+			{
+				Container parent = panel.getParent();
+				if(parent instanceof JSplitPane)
+				{
+					JButton divBut = getDividerBut((JSplitPane) parent, code);
+					
+					if(divBut != lastBut && divBut != null)
+					{
+						lastBut = divBut;
+						divBut.doClick();
+					}
+				}
+			}
+			
+			private boolean getDetailInfo(Object nameValue)
+			{
+				if(nameValue == null)
+				{
+					return false;
+				}
+				
+				LoggerServer loggerServer = getLoggerServer();
+				List<String> bridges = loggerServer.getBridges(nameValue.toString());
+				if(bridges == null)
+				{
+					return false;
+				}
+				
+				Vector<Object>[] data = new Vector[bridges.size()];
+				int index = 0;
+				for(String bridge : bridges)
+				{
+					convertToVector(index++, bridge);
+				}
+				fillTable(detailTable, true, data);
+				
+				return true;
+			}
+
+			private Vector<Object> convertToVector(Object key, Object value)
+			{
+				Vector<Object> data = new Vector<Object>();
+				
+				data.add(key);
+				data.add(value);
+				
+				return data;
+			}
+		});
 		
 		logServerListener = new LogServerListener()
 		{
@@ -889,6 +988,37 @@ public class LoggerMenuItem extends ArchMenu<LoggerMgrSetting>
 		ClientProxyFactoryBean factory = proxy.getClientProxy(LoggerServer.class);
 		
 		return (LoggerServer) factory.create();
+	}
+	
+	private JButton getDividerBut(JSplitPane splitPane, int index)
+	{
+		JButton splitBut = null;
+		
+		if(splitPane == null)
+		{
+			return splitBut;
+		}
+		
+		SplitPaneUI ui = splitPane.getUI();
+		if(ui instanceof BasicSplitPaneUI)
+		{
+			BasicSplitPaneDivider divider = ((BasicSplitPaneUI) ui).getDivider();
+			
+			try
+			{
+				Component divBut = divider.getComponent(index);
+				if(divBut instanceof JButton)
+				{
+					splitBut = (JButton) divBut;
+				}
+			}
+			catch(ArrayIndexOutOfBoundsException e)
+			{
+				e.printStackTrace();
+			}
+		}
+		
+		return splitBut;
 	}
 	
 	private String getLocalAddress()
