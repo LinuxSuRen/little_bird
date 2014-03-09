@@ -18,6 +18,7 @@ public class SuRenBundle
 	private int state;
 	private long lastModified;
 	private String version;
+	private int level;
 	private BundleHeader[] headers;
 	private ServiceInfo[] serviceRef;
 
@@ -68,6 +69,14 @@ public class SuRenBundle
 	public void setVersion(String version)
 	{
 		this.version = version;
+	}
+	public int getLevel()
+	{
+		return level;
+	}
+	public void setLevel(int level)
+	{
+		this.level = level;
 	}
 	public BundleHeader[] getHeaders()
 	{

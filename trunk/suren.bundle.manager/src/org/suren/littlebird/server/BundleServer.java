@@ -15,6 +15,8 @@ public interface BundleServer extends Serializable, Server
 	public int start(long ... ids);
 	public int stop(long ... ids);
 	public int update(long ... ids);
+	
+	public int setStartLevel(int level, long ... ids);
 
 	public int install(String ... paths);
 	public int uninstall(long ... ids);

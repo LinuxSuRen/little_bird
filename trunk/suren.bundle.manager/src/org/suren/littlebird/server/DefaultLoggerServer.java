@@ -161,24 +161,105 @@ public class DefaultLoggerServer implements LoggerServer
 		return true;
 	}
 
-	public boolean clearBridges(String name)
+	public int clearBridges(String name)
 	{
-		return false;
+		int count = 0;
+		if(name == null)
+		{
+			return count;
+		}
+		
+		Enumeration<Logger> loggers = getLoggers();
+		if(loggers == null)
+		{
+			return count;
+		}
+		
+		while(loggers.hasMoreElements())
+		{
+			Logger targetLogger = loggers.nextElement();
+			Appender appender = targetLogger.getAppender(name);
+			
+			if(appender != null)
+			{
+				targetLogger.removeAppender(appender);
+				
+				count++;
+			}
+		}
+		
+		return count;
 	}
 
-	public boolean clearBridges()
+	@SuppressWarnings("unchecked")
+	public int clearBridges()
 	{
-		return false;
+		int count = 0;
+		Enumeration<Logger> loggers = getLoggers();
+		if(loggers == null)
+		{
+			return count;
+		}
+		
+		while(loggers.hasMoreElements())
+		{
+			Logger targetLogger = loggers.nextElement();
+			Enumeration<Appender> appenders = targetLogger.getAllAppenders();
+			
+			while(appenders.hasMoreElements())
+			{
+				targetLogger.removeAppender(appenders.nextElement());
+				
+				count++;
+			}
+		}
+		
+		return count;
 	}
 
+	@SuppressWarnings("unchecked")
 	public List<String> getBridges(String name)
 	{
-		return null;
+		List<String> bridges = new ArrayList<String>();
+		Logger targetLogger = getLogger(name);
+		if(targetLogger == null)
+		{
+			return bridges;
+		}
+		
+		Enumeration<Appender> appenders = targetLogger.getAllAppenders();
+		while(appenders.hasMoreElements())
+		{
+			Appender appender = appenders.nextElement();
+			
+			bridges.add(appender.getName());
+		}
+		
+		return bridges;
 	}
 
+	@SuppressWarnings("unchecked")
 	public List<String> getBridges()
 	{
-		return null;
+		List<String> bridges = new ArrayList<String>();
+		Enumeration<Logger> loggers = getLoggers();
+		if(loggers == null)
+		{
+			return bridges;
+		}
+		
+		while(loggers.hasMoreElements())
+		{
+			Logger targetLogger = loggers.nextElement();
+			Enumeration<Appender> appenders = targetLogger.getAllAppenders();
+			
+			while(appenders.hasMoreElements())
+			{
+				bridges.add(appenders.nextElement().getName());
+			}
+		}
+		
+		return bridges;
 	}
 	
 	private LoggingEvent getSimpleEvent(Logger logger, Level level, String msg)

@@ -11,11 +11,14 @@ import org.apache.log4j.Logger;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.BundleException;
+import org.osgi.framework.ServiceReference;
+import org.osgi.service.startlevel.StartLevel;
 
-public class DefaultBundleServer  implements BundleServer
+public class DefaultBundleServer implements BundleServer
 {
 	private static final long	serialVersionUID	= 1L;
 	private BundleContext context;
+	private StartLevel startLevel;
 
 	private final int BundleStart = 0x1;
 	private final int BundleStop = 0x2;
@@ -27,6 +30,17 @@ public class DefaultBundleServer  implements BundleServer
 	public DefaultBundleServer(BundleContext context)
 	{
 		this.context = context;
+		
+		String name = StartLevel.class.getName();
+		ServiceReference startLevelRef = context.getServiceReference(name );
+		
+		if(startLevelRef != null)
+		{
+			startLevel = (StartLevel) context.getService(startLevelRef);
+		}
+		
+		logger.debug("StartLevelReference : " + startLevelRef);
+		logger.debug("StartLevel : " + startLevel);
 	}
 
 	public List<SuRenBundle> getAll()
@@ -76,7 +90,6 @@ public class DefaultBundleServer  implements BundleServer
 	{
 		return matchBy(regex, Pattern.CANON_EQ);
 	}
-
 
 	public List<SuRenBundle> matchBy(String regex, boolean insensitive)
 	{
@@ -138,6 +151,14 @@ public class DefaultBundleServer  implements BundleServer
 		SuRenBundle surenBundle = new SuRenBundle();
 
 		BundleConvert.toSuRen(bundle, surenBundle, false);
+		
+		int level = -1;
+		if(startLevel != null)
+		{
+			level = startLevel.getBundleStartLevel(bundle);
+		}
+		
+		surenBundle.setLevel(level);
 
 		return surenBundle;
 	}
@@ -156,6 +177,38 @@ public class DefaultBundleServer  implements BundleServer
 	public int update(long... ids)
 	{
 		return bundleOperate(BundleUpdate, ids);
+	}
+
+	public int setStartLevel(int level, long... ids)
+	{
+		int count = -1;
+		if(startLevel == null)
+		{
+			return -1;
+		}
+		
+		if(ids == null || ids.length == 0)
+		{
+			return (count = 0);
+		}
+		
+		for(long id : ids)
+		{
+			Bundle bundle = context.getBundle(id);
+			
+			if(bundle != null)
+			{
+				try
+				{
+					startLevel.setBundleStartLevel(bundle, level);
+					
+					count++;
+				}
+				catch(Exception e){}
+			}
+		}
+		
+		return count;
 	}
 
 	public int install(String... paths)
