@@ -27,17 +27,6 @@ public class SuRenBundleActivator implements BundleActivator
 	public void start(BundleContext context) throws Exception
 	{
 		this.context = context;
-//		Dictionary<String, String> properties = new Hashtable<String, String>();
-//
-//		properties.put("osgi.remote.interfaces", "*");
-//		properties.put("osgi.remote.configuration.type", "pojo");
-//		properties.put("osgi.remote.configuration.pojo.address",
-//				"http://localhost:9789/greeter");
-//		properties.put("service.exported.interfaces", "*");
-//		properties.put("service.exported.intents", "SOAP");
-//		properties.put("service.exported.configs", "org.apache.cxf.ws");
-//		properties.put("org.apache.cxf.ws.address",
-//				"http://localhost:9789/greeter");
 
 		BundleServer bundleServer = new DefaultBundleServer(context);
 		LoggerServer loggerServer = new DefaultLoggerServer();
