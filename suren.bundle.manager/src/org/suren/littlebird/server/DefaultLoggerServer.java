@@ -224,6 +224,8 @@ public class DefaultLoggerServer implements LoggerServer
 		Logger targetLogger = getLogger(name);
 		if(targetLogger == null)
 		{
+			logger.error("can not found target logger : " + name);
+			
 			return bridges;
 		}
 		
