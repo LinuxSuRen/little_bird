@@ -1,4 +1,5 @@
-package org.suren.littlebird.server;
+package org.suren.littlebird.po;
+
 
 public class SuRenBundle
 {

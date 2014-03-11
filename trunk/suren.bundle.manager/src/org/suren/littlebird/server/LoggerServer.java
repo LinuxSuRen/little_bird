@@ -2,6 +2,7 @@ package org.suren.littlebird.server;
 
 import java.io.Serializable;
 import java.util.List;
+import java.util.Map.Entry;
 
 public interface LoggerServer extends Serializable, Server
 {
@@ -17,4 +18,6 @@ public interface LoggerServer extends Serializable, Server
 	public int clearBridges();
 	public List<String> getBridges(String name);
 	public List<String> getBridges();
+
+	public List<Entry<String, String>> bridgeInfo(String loggerName, String bridgeName);
 }

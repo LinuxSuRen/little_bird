@@ -13,6 +13,8 @@ import org.osgi.framework.BundleContext;
 import org.osgi.framework.BundleException;
 import org.osgi.framework.ServiceReference;
 import org.osgi.service.startlevel.StartLevel;
+import org.suren.littlebird.po.SuRenBundle;
+import org.suren.littlebird.util.BundleConvert;
 
 public class DefaultBundleServer implements BundleServer
 {
@@ -24,21 +26,21 @@ public class DefaultBundleServer implements BundleServer
 	private final int BundleStop = 0x2;
 	private final int BundleUninstall = 0x3;
 	private final int BundleUpdate = 0x4;
-	
+
 	private Logger logger = Logger.getLogger(DefaultBundleServer.class);
 
 	public DefaultBundleServer(BundleContext context)
 	{
 		this.context = context;
-		
+
 		String name = StartLevel.class.getName();
 		ServiceReference startLevelRef = context.getServiceReference(name );
-		
+
 		if(startLevelRef != null)
 		{
 			startLevel = (StartLevel) context.getService(startLevelRef);
 		}
-		
+
 		logger.debug("StartLevelReference : " + startLevelRef);
 		logger.debug("StartLevel : " + startLevel);
 	}
@@ -60,7 +62,7 @@ public class DefaultBundleServer implements BundleServer
 
 			surenBundles.add(surenBundle);
 		}
-		
+
 		logger.debug("bundles.size : " + bundles.length);
 
 		return surenBundles;
@@ -151,13 +153,13 @@ public class DefaultBundleServer implements BundleServer
 		SuRenBundle surenBundle = new SuRenBundle();
 
 		BundleConvert.toSuRen(bundle, surenBundle, false);
-		
+
 		int level = -1;
 		if(startLevel != null)
 		{
 			level = startLevel.getBundleStartLevel(bundle);
 		}
-		
+
 		surenBundle.setLevel(level);
 
 		return surenBundle;
@@ -186,28 +188,28 @@ public class DefaultBundleServer implements BundleServer
 		{
 			return -1;
 		}
-		
+
 		if(ids == null || ids.length == 0)
 		{
 			return (count = 0);
 		}
-		
+
 		for(long id : ids)
 		{
 			Bundle bundle = context.getBundle(id);
-			
+
 			if(bundle != null)
 			{
 				try
 				{
 					startLevel.setBundleStartLevel(bundle, level);
-					
+
 					count++;
 				}
 				catch(Exception e){}
 			}
 		}
-		
+
 		return count;
 	}
 
