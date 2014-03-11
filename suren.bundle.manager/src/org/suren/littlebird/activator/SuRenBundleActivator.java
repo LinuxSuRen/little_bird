@@ -21,7 +21,7 @@ public class SuRenBundleActivator implements BundleActivator
 	private List<ServiceRegistration> registrationList;
 
 	private final String addrValue = "http://localhost:9789/";
-	
+
 	private Logger logger = Logger.getLogger(SuRenBundleActivator.class);
 
 	public void start(BundleContext context) throws Exception
@@ -35,7 +35,7 @@ public class SuRenBundleActivator implements BundleActivator
 
 		register(bundleServer, BundleServer.class);
 		register(loggerServer, LoggerServer.class);
-		
+
 		logger.info("SuRen Bundle Started.");
 	}
 
@@ -48,15 +48,15 @@ public class SuRenBundleActivator implements BundleActivator
 
 		Dictionary<String, String> properties = new Hashtable<String, String>();
 
-//		properties.put("osgi.remote.interfaces", "*");
-//		properties.put("osgi.remote.configuration.type", "pojo");
-//		properties.put(addrKey, addrValue + server.getName());
-		
+		properties.put("osgi.remote.interfaces", "*");
+		properties.put("osgi.remote.configuration.type", "pojo");
+		properties.put("osgi.remote.configuration.pojo.address", addrValue + server.getName());
+
 		properties.put("service.exported.interfaces", "*");
 		properties.put("service.exported.intents", "SOAP");
 		properties.put("service.exported.configs", "org.apache.cxf.ws");
 		properties.put("org.apache.cxf.ws.address", addrValue + server.getName());
-		
+
 		logger.info(addrValue + server.getName());
 
 		ServiceRegistration registration = context.registerService(clazz.getName(), server, properties);
@@ -72,7 +72,7 @@ public class SuRenBundleActivator implements BundleActivator
 				registration.unregister();
 			}
 		}
-		
+
 		logger.info("SuRen Bundle Stoped.");
 	}
 }

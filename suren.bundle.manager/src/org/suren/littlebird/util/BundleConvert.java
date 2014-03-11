@@ -1,9 +1,12 @@
-package org.suren.littlebird.server;
+package org.suren.littlebird.util;
 
 import java.util.Dictionary;
 import java.util.Enumeration;
 
 import org.osgi.framework.Bundle;
+import org.suren.littlebird.po.BundleHeader;
+import org.suren.littlebird.po.ServiceInfo;
+import org.suren.littlebird.po.SuRenBundle;
 
 public class BundleConvert
 {

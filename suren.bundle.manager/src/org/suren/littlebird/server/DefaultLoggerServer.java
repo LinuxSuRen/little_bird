@@ -3,6 +3,7 @@ package org.suren.littlebird.server;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
+import java.util.Map.Entry;
 
 import org.apache.log4j.Appender;
 import org.apache.log4j.Level;
@@ -11,11 +12,12 @@ import org.apache.log4j.Logger;
 import org.apache.log4j.net.SocketAppender;
 import org.apache.log4j.spi.LoggerRepository;
 import org.apache.log4j.spi.LoggingEvent;
+import org.suren.littlebird.util.AppenderConvert;
 
 public class DefaultLoggerServer implements LoggerServer
 {
 	private static final long	serialVersionUID	= 1L;
-	
+
 	private Logger logger = Logger.getLogger(DefaultLoggerServer.class);
 
 	public String getName()
@@ -101,7 +103,7 @@ public class DefaultLoggerServer implements LoggerServer
 		if(targetLogger == null)
 		{
 			logger.error("can not found logger : " + name);
-			
+
 			return false;
 		}
 
@@ -110,7 +112,7 @@ public class DefaultLoggerServer implements LoggerServer
 		if(appender != null)
 		{
 			logger.debug(appenderName + " already exists.");
-			
+
 			return true;
 		}
 
@@ -120,11 +122,11 @@ public class DefaultLoggerServer implements LoggerServer
 
 		SocketAppender socketAppender = (SocketAppender) appender;
 		socketAppender.setReconnectionDelay(2000);
-		
+
 		LoggingEvent event = getSimpleEvent(logger,
 				Level.DEBUG, "add socket append success.");
 		socketAppender.doAppend(event);
-		
+
 		logger.info(appenderName + " added.");
 
 		return true;
@@ -136,28 +138,28 @@ public class DefaultLoggerServer implements LoggerServer
 		if(targetLogger == null)
 		{
 			logger.error("can not found logger : " + name);
-			
+
 			return false;
 		}
-		
+
 		String appenderName = host + port;
 		Appender appender = targetLogger.getAppender(appenderName);
 		if(appender == null)
 		{
 			logger.error("can not found appender : " + appenderName);
-			
+
 			return false;
 		}
-		
+
 		if(!(appender instanceof SocketAppender))
 		{
 			logger.warn(appenderName + " is not a socket appender.");
 		}
-		
+
 		targetLogger.removeAppender(appender);
-		
+
 		logger.info("removed appender : " + appenderName);
-		
+
 		return true;
 	}
 
@@ -168,26 +170,26 @@ public class DefaultLoggerServer implements LoggerServer
 		{
 			return count;
 		}
-		
+
 		Enumeration<Logger> loggers = getLoggers();
 		if(loggers == null)
 		{
 			return count;
 		}
-		
+
 		while(loggers.hasMoreElements())
 		{
 			Logger targetLogger = loggers.nextElement();
 			Appender appender = targetLogger.getAppender(name);
-			
+
 			if(appender != null)
 			{
 				targetLogger.removeAppender(appender);
-				
+
 				count++;
 			}
 		}
-		
+
 		return count;
 	}
 
@@ -200,20 +202,20 @@ public class DefaultLoggerServer implements LoggerServer
 		{
 			return count;
 		}
-		
+
 		while(loggers.hasMoreElements())
 		{
 			Logger targetLogger = loggers.nextElement();
 			Enumeration<Appender> appenders = targetLogger.getAllAppenders();
-			
+
 			while(appenders.hasMoreElements())
 			{
 				targetLogger.removeAppender(appenders.nextElement());
-				
+
 				count++;
 			}
 		}
-		
+
 		return count;
 	}
 
@@ -225,18 +227,18 @@ public class DefaultLoggerServer implements LoggerServer
 		if(targetLogger == null)
 		{
 			logger.error("can not found target logger : " + name);
-			
+
 			return bridges;
 		}
-		
+
 		Enumeration<Appender> appenders = targetLogger.getAllAppenders();
 		while(appenders.hasMoreElements())
 		{
 			Appender appender = appenders.nextElement();
-			
+
 			bridges.add(appender.getName());
 		}
-		
+
 		return bridges;
 	}
 
@@ -249,33 +251,50 @@ public class DefaultLoggerServer implements LoggerServer
 		{
 			return bridges;
 		}
-		
+
 		while(loggers.hasMoreElements())
 		{
 			Logger targetLogger = loggers.nextElement();
 			Enumeration<Appender> appenders = targetLogger.getAllAppenders();
-			
+
 			while(appenders.hasMoreElements())
 			{
 				bridges.add(appenders.nextElement().getName());
 			}
 		}
-		
+
 		return bridges;
 	}
-	
+
 	private LoggingEvent getSimpleEvent(Logger logger, Level level, String msg)
 	{
 		LoggingEvent event = new LoggingEvent("", logger, level, msg, null);
-		
+
 		return event;
 	}
-	
+
 	private Logger getLogger(String name)
 	{
 		LoggerRepository repo = LogManager.getLoggerRepository();
 		Logger logger = repo.getLogger(name);
-		
+
 		return logger;
+	}
+
+	public List<Entry<String, String>> bridgeInfo(String loggerName, String bridgeName)
+	{
+		Logger targetLogger  = getLogger(loggerName);
+		if(targetLogger == null)
+		{
+			return null;
+		}
+
+		Appender appender = targetLogger.getAppender(bridgeName);
+		if(appender == null)
+		{
+			return null;
+		}
+
+		return AppenderConvert.toList(appender);
 	}
 }
