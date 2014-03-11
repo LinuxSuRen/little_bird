@@ -1,4 +1,4 @@
-package org.suren.littlebird.server;
+package org.suren.littlebird.po;
 
 import java.util.Properties;
 

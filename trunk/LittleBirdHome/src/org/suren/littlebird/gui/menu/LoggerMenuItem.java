@@ -5,6 +5,8 @@ import java.awt.Color;
 import java.awt.Component;
 import java.awt.Container;
 import java.awt.FlowLayout;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -15,6 +17,8 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.util.List;
+import java.util.Map.Entry;
+import java.util.Set;
 import java.util.Vector;
 
 import javax.swing.JButton;
@@ -154,6 +158,19 @@ public class LoggerMenuItem extends ArchMenu<LoggerMgrSetting>
 				KeyStroke.getKeyStroke(KeyEvent.VK_E, KeyEvent.CTRL_DOWN_MASK),
 				JComponent.WHEN_IN_FOCUSED_WINDOW);
 		
+		LoggerMgrSetting loggerMgrCfg = loadCfg();
+		if(loggerMgrCfg != null)
+		{
+			Set<String> hisKeyword = loggerMgrCfg.getHistoryKeyword();
+			if(hisKeyword != null)
+			{
+				for(String keyword : hisKeyword)
+				{
+					filterBox.addItem(keyword);
+				}
+			}
+		}
+		
 		setLevelBut.addActionListener(new ActionListener()
 		{
 			
@@ -170,6 +187,22 @@ public class LoggerMenuItem extends ArchMenu<LoggerMgrSetting>
 				}
 				
 				if(rows.length > 0)
+				{
+					reloadBut.doClick();
+				}
+			}
+		});
+		
+		filterBox.addActionListener(new ActionListener()
+		{
+			
+			@Override
+			public void actionPerformed(ActionEvent e)
+			{
+				Object source = e.getSource();
+				String cmd = e.getActionCommand();
+				
+				if("comboBoxEdited".equals(cmd) && source instanceof JComboBox)
 				{
 					reloadBut.doClick();
 				}
@@ -394,14 +427,17 @@ public class LoggerMenuItem extends ArchMenu<LoggerMgrSetting>
 			{
 				int remotePort = -1;
 				int localPort = - 1;
+				int consoleBuffer = -1;
 				String remotePortStr = remotePortField.getText();
 				String remoteStr = remoteField.getText();
 				String localPortStr = localPortField.getText();
 				String logLayout = logLayoutField.getText();
+				String consoleBufferText = consoleBufferField.getText();
 				
 				if("".equals(remotePortStr) || "".equals(remoteStr)
 						|| "".equals(localPortStr)
-						|| "".equals(logLayout))
+						|| "".equals(logLayout)
+						|| "".equals(consoleBufferText))
 				{
 					return;
 				}
@@ -410,6 +446,7 @@ public class LoggerMenuItem extends ArchMenu<LoggerMgrSetting>
 				{
 					remotePort = Integer.parseInt(remotePortStr);
 					localPort = Integer.parseInt(localPortStr);
+					consoleBuffer = Integer.parseInt(consoleBufferText);
 				}
 				catch(NumberFormatException e1)
 				{
@@ -431,10 +468,13 @@ public class LoggerMenuItem extends ArchMenu<LoggerMgrSetting>
 				loggerMgrCfg.setPort(remotePort);
 				loggerMgrCfg.setBridgePort(localPort);
 				loggerMgrCfg.setLogLayout(logLayout);
+				loggerMgrCfg.setConsoleBuffer(consoleBuffer);
 				
 				if(saveCfg(loggerMgrCfg))
 				{
 					toolBar.setVisible(false);
+					
+					server.setLogLayout(logLayout);
 				}
 			}
 		});
@@ -469,10 +509,12 @@ public class LoggerMenuItem extends ArchMenu<LoggerMgrSetting>
 			appender.setRowsLimit(loggerMgrCfg.getConsoleBuffer());
 		}
 		
+		JPanel detailPanel = createDetailPanel(detailTable);
+		
 		JSplitPane loggerListSplit = new JSplitPane(
 				JSplitPane.HORIZONTAL_SPLIT,
 				new JScrollPane(table),
-				new JScrollPane(detailTable));
+				new JScrollPane(detailPanel));
 		setLocation(loggerListSplit, 0.8);
 		
 		JSplitPane centerSplit = new JSplitPane(
@@ -509,6 +551,8 @@ public class LoggerMenuItem extends ArchMenu<LoggerMgrSetting>
 					
 					Object nameValue = table.getValueAt(id, HEAD_NAME);
 					getDetailInfo(nameValue);
+					
+					detailTable.addData(HEAD_NAME, nameValue);
 				}
 			}
 			
@@ -555,7 +599,7 @@ public class LoggerMenuItem extends ArchMenu<LoggerMgrSetting>
 				int index = 0;
 				for(String bridge : bridges)
 				{
-					convertToVector(index++, bridge);
+					data[index++] = convertToVector("bridge", bridge);
 				}
 				fillTable(detailTable, true, data);
 				
@@ -594,6 +638,84 @@ public class LoggerMenuItem extends ArchMenu<LoggerMgrSetting>
 		};
 		
 		panel.add(centerSplit, BorderLayout.CENTER);
+	}
+
+	private JPanel createDetailPanel(final SuRenTable detailTable)
+	{
+		JPanel panel = new JPanel();
+		GridBagLayout layout = new GridBagLayout();
+		final GridLayout gridLayout = new GridLayout();
+		panel.setLayout(layout);
+		
+		final JPanel infoPanel = new JPanel();
+		infoPanel.setLayout(gridLayout);
+		
+		GridBagConstraints cons = new GridBagConstraints();
+		
+		cons.fill = GridBagConstraints.BOTH;
+		cons.weightx  = 1;
+		cons.weighty  = 0;
+		cons.gridx = 1;
+		cons.gridy = 1;
+		layout.setConstraints(detailTable, cons);
+		panel.add(detailTable);
+		
+		cons.gridy = 2;
+		cons.weighty  = 0;
+		layout.setConstraints(infoPanel, cons);
+		panel.add(infoPanel);
+		
+		JPanel leftPanel = new JPanel();
+		cons.gridy = 3;
+		cons.weighty  = 1;
+		layout.setConstraints(leftPanel, cons);
+		panel.add(leftPanel);
+		
+		detailTable.addMouseListener(new MouseAdapter()
+		{
+
+			@Override
+			public void mouseClicked(MouseEvent e)
+			{
+				int count = e.getClickCount();
+				if(count < 2)
+				{
+					return;
+				}
+				
+				int rowId = detailTable.getSelectedRow();
+				Object loggerName = detailTable.getData().get(HEAD_NAME);
+				Object name;
+				
+				if(rowId == -1 || loggerName == null
+						|| (name = detailTable.getValueAt(rowId, HEAD_VALUE)) == null)
+				{
+					return;
+				}
+				
+				LoggerServer loggerServer = getLoggerServer();
+				if(loggerServer == null)
+				{
+					return;
+				}
+				
+				List<Entry<String, String>> bridgeInfo = loggerServer.bridgeInfo(
+						loggerName.toString(), name.toString());
+				if(bridgeInfo != null)
+				{
+					infoPanel.removeAll();
+					gridLayout.setRows(bridgeInfo.size());
+					
+					for(Entry<String, String> entry : bridgeInfo)
+					{
+						infoPanel.add(new JLabel(entry.getKey()));
+						infoPanel.add(new JLabel(entry.getValue()));
+					}
+				}
+			}
+		});
+		
+		return panel;
 	}
 
 	private void createCenterPopuMenu(final SuRenTable table)

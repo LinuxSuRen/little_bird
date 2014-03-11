@@ -1,7 +1,5 @@
 package org.suren.littlebird;
 
-import java.lang.management.ManagementFactory;
-
 import javax.management.Attribute;
 import javax.management.AttributeList;
 import javax.management.AttributeNotFoundException;

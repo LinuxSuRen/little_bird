@@ -1,5 +1,7 @@
 package org.suren.littlebird.gui;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Vector;
 
 import javax.swing.JTable;
@@ -13,6 +15,7 @@ public class SuRenTable extends JTable
 	private SuRenTableModel model;
 	private SuRenTableRowSorter rowSorter;
 	private SuRenTableCellRenderer cellRenderer = new SuRenTableCellRenderer();
+	private Map<String, Object> data = new HashMap<String, Object>();
 	
 	public SuRenTable()
 	{
@@ -98,5 +101,20 @@ public class SuRenTable extends JTable
 		{
 			return null;
 		}
+	}
+
+	public Map<String, Object> getData()
+	{
+		return data;
+	}
+
+	public void addData(Map<String, Object> data)
+	{
+		this.data.putAll(data);
+	}
+	
+	public void addData(String key, Object value)
+	{
+		data.put(key, value);
 	}
 }

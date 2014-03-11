@@ -223,5 +223,10 @@ public class LogServer extends SimpleServer
 	public void setLogLayout(String logLayout)
 	{
 		this.logLayout = logLayout;
+		
+		if(patternLayout != null)
+		{
+			patternLayout.setConversionPattern(logLayout);
+		}
 	}
 }
