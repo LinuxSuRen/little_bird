@@ -5,7 +5,6 @@ import java.rmi.server.UnicastRemoteObject;
 import java.util.Date;
 
 import org.suren.littlebird.annotation.Publish;
-import org.suren.littlebird.time.Time;
 
 @Publish(name = "Time")
 public class HomeTime extends UnicastRemoteObject implements Time {

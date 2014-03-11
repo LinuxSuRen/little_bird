@@ -4,7 +4,6 @@ import java.util.Comparator;
 
 import javax.swing.table.TableRowSorter;
 
-import org.suren.littlebird.gui.SuRenTableModel;
 import org.suren.littlebird.util.NumberComparator;
 
 public class SuRenTableRowSorter extends TableRowSorter<SuRenTableModel>

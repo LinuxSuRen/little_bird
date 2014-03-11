@@ -3,6 +3,8 @@ package org.suren.littlebird.server;
 import java.io.Serializable;
 import java.util.List;
 
+import org.suren.littlebird.po.SuRenBundle;
+
 public interface BundleServer extends Serializable, Server
 {
 	public List<SuRenBundle> getAll();

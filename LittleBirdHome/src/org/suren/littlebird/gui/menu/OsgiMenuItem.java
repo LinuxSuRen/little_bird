@@ -21,8 +21,6 @@ import java.util.Collection;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
 import java.util.Vector;
 
@@ -49,10 +47,6 @@ import javax.swing.table.TableModel;
 
 import org.apache.cxf.aegis.databinding.AegisDatabinding;
 import org.apache.cxf.frontend.ClientProxyFactoryBean;
-import org.apache.cxf.interceptor.Fault;
-import org.apache.cxf.interceptor.Interceptor;
-import org.apache.cxf.message.Message;
-import org.apache.cxf.phase.PhaseInterceptor;
 import org.suren.littlebird.annotation.Menu;
 import org.suren.littlebird.annotation.Menu.Action;
 import org.suren.littlebird.exception.SuRenSettingException;
@@ -60,8 +54,8 @@ import org.suren.littlebird.gui.FocusAndSelectListener;
 import org.suren.littlebird.gui.MainFrame;
 import org.suren.littlebird.gui.SuRenTable;
 import org.suren.littlebird.gui.SuRenTableModel;
+import org.suren.littlebird.po.SuRenBundle;
 import org.suren.littlebird.server.BundleServer;
-import org.suren.littlebird.server.SuRenBundle;
 import org.suren.littlebird.setting.OsgiMgrSetting;
 import org.suren.littlebird.setting.SettingUtil;
 
@@ -847,7 +841,7 @@ public class OsgiMenuItem extends ArchMenu<OsgiMgrSetting>
 				@SuppressWarnings("unchecked")
 				Vector<Object>[] data = new Vector[6];
 				
-				SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
+				SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 				
 				data[0] = convertToVector("Id:", bundle.getId());
 				data[1] = convertToVector("LastModified:", format.format(bundle.getLastModified()));
