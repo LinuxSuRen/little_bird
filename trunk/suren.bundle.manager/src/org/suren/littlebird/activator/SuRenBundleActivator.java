@@ -8,7 +8,13 @@ import java.util.List;
 import org.apache.log4j.Logger;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
+import org.osgi.framework.BundleListener;
+import org.osgi.framework.FrameworkListener;
+import org.osgi.framework.ServiceListener;
 import org.osgi.framework.ServiceRegistration;
+import org.suren.littlebird.listener.SuRenBundleListener;
+import org.suren.littlebird.listener.SuRenFrameworkListener;
+import org.suren.littlebird.listener.SuRenServiceListener;
 import org.suren.littlebird.server.BundleServer;
 import org.suren.littlebird.server.DefaultBundleServer;
 import org.suren.littlebird.server.DefaultLoggerServer;
@@ -19,6 +25,10 @@ public class SuRenBundleActivator implements BundleActivator
 {
 	private BundleContext context;
 	private List<ServiceRegistration> registrationList;
+
+	private BundleListener surenBundleListener;
+	private FrameworkListener surenFrameworkListener;
+	private ServiceListener surenServiceListener;
 
 	private final String addrValue = "http://localhost:9789/";
 
@@ -36,7 +46,22 @@ public class SuRenBundleActivator implements BundleActivator
 		register(bundleServer, BundleServer.class);
 		register(loggerServer, LoggerServer.class);
 
+		listenerRegister();
+
 		logger.info("SuRen Bundle Started.");
+	}
+
+	private void listenerRegister()
+	{
+		surenBundleListener = new SuRenBundleListener();
+		surenFrameworkListener = new SuRenFrameworkListener();
+		surenServiceListener = new SuRenServiceListener();
+
+		context.addBundleListener(surenBundleListener);
+		context.addFrameworkListener(surenFrameworkListener);
+		context.addServiceListener(surenServiceListener);
+
+		logger.info("SuRenListener Regist Over.");
 	}
 
 	private void register(Server server, Class<?> clazz)
@@ -72,6 +97,10 @@ public class SuRenBundleActivator implements BundleActivator
 				registration.unregister();
 			}
 		}
+
+		context.removeBundleListener(surenBundleListener);
+		context.removeFrameworkListener(surenFrameworkListener);
+		context.removeServiceListener(surenServiceListener);
 
 		logger.info("SuRen Bundle Stoped.");
 	}
