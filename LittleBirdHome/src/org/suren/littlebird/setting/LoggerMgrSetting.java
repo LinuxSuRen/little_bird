@@ -1,6 +1,6 @@
 package org.suren.littlebird.setting;
 
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Set;
 
 import javax.xml.bind.annotation.XmlElement;
@@ -106,9 +106,10 @@ public class LoggerMgrSetting
 	{
 		if(getHistoryKeyword() == null)
 		{
-			setHistoryKeyword(new HashSet<String>());
+			setHistoryKeyword(new LinkedHashSet<String>());
 		}
 		
+		getHistoryKeyword().remove(keyword);
 		getHistoryKeyword().add(keyword);
 	}
 	public void setHistoryKeyword(Set<String> historyKeyword)

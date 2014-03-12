@@ -48,6 +48,7 @@ import org.suren.littlebird.annotation.Menu;
 import org.suren.littlebird.annotation.Menu.Action;
 import org.suren.littlebird.gui.FocusAndSelectListener;
 import org.suren.littlebird.gui.MainFrame;
+import org.suren.littlebird.gui.SuRenComboBox;
 import org.suren.littlebird.gui.SuRenStatusButton;
 import org.suren.littlebird.gui.SuRenTable;
 import org.suren.littlebird.gui.SuRenTableModel;
@@ -121,7 +122,7 @@ public class LoggerMenuItem extends ArchMenu<LoggerMgrSetting>
 
 		final JComboBox levelBox = new JComboBox();
 		JButton setLevelBut = new JButton("SetLevel");
-		final JComboBox filterBox = new JComboBox();
+		final SuRenComboBox filterBox = new SuRenComboBox();
 		final JButton reloadBut = new JButton("Reload");
 		JButton settingBut = new JButton("Setting");
 		SuRenStatusButton logSerControlBut = new SuRenStatusButton();
@@ -202,10 +203,28 @@ public class LoggerMenuItem extends ArchMenu<LoggerMgrSetting>
 				Object source = e.getSource();
 				String cmd = e.getActionCommand();
 				
-				if("comboBoxEdited".equals(cmd) && source instanceof JComboBox)
+				if("comboBoxEdited".equals(cmd) && source instanceof SuRenComboBox)
 				{
 					reloadBut.doClick();
+					
+					SuRenComboBox filter = (SuRenComboBox) source;
+					save(filter.getSelectedItem().toString());
+					
+					filter.addUniItem(filter.getSelectedItem());
 				}
+			}
+			
+			private void save(String item)
+			{
+				LoggerMgrSetting cfg = loadCfg();
+				
+				if(cfg == null)
+				{
+					cfg = new LoggerMgrSetting();
+				}
+				
+				cfg.addHistoryKeyword(item);
+				saveCfg(cfg);
 			}
 		});
 		
@@ -223,26 +242,8 @@ public class LoggerMenuItem extends ArchMenu<LoggerMgrSetting>
 				}
 				else
 				{
-					int count = reload(table, item.toString());
-					
-					if(count > 0)
-					{
-						save(item.toString());
-					}
+					reload(table, item.toString());
 				}
-			}
-			
-			private void save(String item)
-			{
-				LoggerMgrSetting cfg = loadCfg();
-				
-				if(cfg == null)
-				{
-					cfg = new LoggerMgrSetting();
-				}
-				
-				cfg.addHistoryKeyword(item);
-				saveCfg(cfg);
 			}
 		});
 		
@@ -489,7 +490,7 @@ public class LoggerMenuItem extends ArchMenu<LoggerMgrSetting>
 		table.setHeaders(HEAD_NUM, HEAD_NAME, HEAD_LEVEL);
 		table.setColumnSorterClass(0, Number.class);
 		
-		detailTable.setHeaders(HEAD_NAME, HEAD_VALUE);
+		detailTable.setHeaders(HEAD_NUM, HEAD_VALUE);
 		
 		JTextArea logArea = new JTextArea();
 		final JTextAreaAppender appender = new JTextAreaAppender();
@@ -515,12 +516,14 @@ public class LoggerMenuItem extends ArchMenu<LoggerMgrSetting>
 				JSplitPane.HORIZONTAL_SPLIT,
 				new JScrollPane(table),
 				new JScrollPane(detailPanel));
+		loggerListSplit.setOneTouchExpandable(true);
 		setLocation(loggerListSplit, 0.8);
 		
 		JSplitPane centerSplit = new JSplitPane(
 				JSplitPane.VERTICAL_SPLIT,
 				loggerListSplit,
 				new JScrollPane(logArea));
+		centerSplit.setOneTouchExpandable(true);
 		setLocation(centerSplit, 0.6);
 		
 		table.addMouseListener(new MouseAdapter()
@@ -599,7 +602,9 @@ public class LoggerMenuItem extends ArchMenu<LoggerMgrSetting>
 				int index = 0;
 				for(String bridge : bridges)
 				{
-					data[index++] = convertToVector("bridge", bridge);
+					data[index] = convertToVector(String.valueOf(index), bridge);
+					
+					index++;
 				}
 				fillTable(detailTable, true, data);
 				
@@ -648,7 +653,9 @@ public class LoggerMenuItem extends ArchMenu<LoggerMgrSetting>
 		panel.setLayout(layout);
 		
 		final JPanel infoPanel = new JPanel();
-		infoPanel.setLayout(gridLayout);
+		final GridBagLayout infoLayout = new GridBagLayout();
+		infoPanel.setLayout(infoLayout);
+		infoPanel.setBackground(Color.PINK);
 		
 		GridBagConstraints cons = new GridBagConstraints();
 		
@@ -657,6 +664,7 @@ public class LoggerMenuItem extends ArchMenu<LoggerMgrSetting>
 		cons.weighty  = 0;
 		cons.gridx = 1;
 		cons.gridy = 1;
+		cons.anchor = GridBagConstraints.WEST;
 		layout.setConstraints(detailTable, cons);
 		panel.add(detailTable);
 		
@@ -706,10 +714,28 @@ public class LoggerMenuItem extends ArchMenu<LoggerMgrSetting>
 					infoPanel.removeAll();
 					gridLayout.setRows(bridgeInfo.size());
 					
-					for(Entry<String, String> entry : bridgeInfo)
+					GridBagConstraints cons = new GridBagConstraints();
+					int len = bridgeInfo.size();
+					
+					for(int i = 0; i < len;)
 					{
-						infoPanel.add(new JLabel(entry.getKey()));
-						infoPanel.add(new JLabel(entry.getValue()));
+						Entry<String, String> entry = bridgeInfo.get(i);
+						i++;
+						
+						JLabel keyLabel = new JLabel(entry.getKey() + " : ");
+						cons.gridx = 1;
+						cons.gridy = i;
+						cons.weightx = 0;
+						cons.anchor = GridBagConstraints.WEST;
+						cons.ipadx = 15;
+						infoLayout.setConstraints(keyLabel, cons);
+						infoPanel.add(keyLabel);
+
+						JLabel valueLabel = new JLabel(entry.getValue());
+						cons.gridx = 2;
+						cons.weightx = 1;
+						infoLayout.setConstraints(valueLabel, cons);
+						infoPanel.add(valueLabel);
 					}
 				}
 			}
