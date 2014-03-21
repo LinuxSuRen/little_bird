@@ -9,14 +9,11 @@ import org.suren.littlebird.annotation.Publish;
 @Publish(name = "Disk")
 public class HomeDisk extends UnicastRemoteObject implements Disk {
 
+	private static final long serialVersionUID = 611943208083731391L;
+
 	public HomeDisk() throws RemoteException {
 		super();
 	}
-
-	/**
-	 * 
-	 */
-	private static final long serialVersionUID = 611943208083731391L;
 
 	@Override
 	public File[] root() throws RemoteException {

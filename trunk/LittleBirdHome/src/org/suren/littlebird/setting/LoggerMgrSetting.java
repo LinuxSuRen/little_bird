@@ -19,6 +19,8 @@ public class LoggerMgrSetting
 	private int consoleBuffer;
 	private String logLayout;
 	private Set<String> historyKeyword;
+	private String agent;
+	private Set<String> agentType;
 	@XmlElement
 	public String getHost()
 	{
@@ -115,5 +117,24 @@ public class LoggerMgrSetting
 	public void setHistoryKeyword(Set<String> historyKeyword)
 	{
 		this.historyKeyword = historyKeyword;
+	}
+	@XmlElement
+	public String getAgent()
+	{
+		return agent;
+	}
+	public void setAgent(String agent)
+	{
+		this.agent = agent;
+	}
+	@XmlElementWrapper
+	@XmlElement(name = "agent")
+	public Set<String> getAgentType()
+	{
+		return agentType;
+	}
+	public void setAgentType(Set<String> agentType)
+	{
+		this.agentType = agentType;
 	}
 }

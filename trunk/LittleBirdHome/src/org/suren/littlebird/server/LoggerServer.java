@@ -9,6 +9,9 @@ public interface LoggerServer extends Serializable, Server
 	public List<String> getNames();
 	public List<String> searchBy(String search);
 
+	public List<List<Entry<String, String>>> getAllLoggers();
+	public List<List<Entry<String, String>>> searchLoggersBy(String search);
+
 	public String getLevel(String name);
 	public boolean setLevel(String name, String level);
 
@@ -19,5 +22,10 @@ public interface LoggerServer extends Serializable, Server
 	public List<String> getBridges(String name);
 	public List<String> getBridges();
 
-	public List<Entry<String, String>> bridgeInfo(String loggerName, String bridgeName);
+	public List<Entry<String, String>> bridgeInfo(String loggerName,
+			String bridgeName);
+
+	public boolean addFilter(String loggerName, String bridgeName,
+			String threadName);
+	public boolean clearFilter(String loggerName, String bridgeName);
 }
