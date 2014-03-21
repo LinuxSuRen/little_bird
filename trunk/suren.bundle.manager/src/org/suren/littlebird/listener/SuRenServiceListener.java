@@ -12,7 +12,8 @@ public class SuRenServiceListener implements ServiceListener, SuRenListener
 	{
 		int code = event.getType();
 
-		logger.trace("Service Event Happened, type : " + getTypeName(code));
+		logger.trace("Service Event Happened, type : " + getTypeName(code) +
+				" - " + event.getServiceReference().getBundle().getSymbolicName());
 	}
 
 	public String getTypeName(int type)

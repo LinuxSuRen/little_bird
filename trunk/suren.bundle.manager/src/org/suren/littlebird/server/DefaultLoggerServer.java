@@ -1,5 +1,7 @@
 package org.suren.littlebird.server;
 
+import java.io.ByteArrayOutputStream;
+import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
@@ -88,7 +90,7 @@ public class DefaultLoggerServer implements LoggerServer
 		}
 	}
 
-	public Enumeration<Logger> getLoggers()
+	private Enumeration<Logger> getLoggers()
 	{
 		LoggerRepository repo = LogManager.getLoggerRepository();
 		@SuppressWarnings("unchecked")
@@ -296,5 +298,54 @@ public class DefaultLoggerServer implements LoggerServer
 		}
 
 		return AppenderConvert.toList(appender);
+	}
+
+	public boolean addFilter(String loggerName, String bridgeName,
+			String threadName) throws Exception
+	{
+		return false;
+	}
+
+	public boolean clearFilter(String loggerName, String bridgeName)
+			throws Exception
+	{
+		return false;
+	}
+
+	public List<List<Entry<String, String>>> getAllLoggers() throws Exception
+	{
+		return searchLoggersBy(null);
+	}
+
+	public List<List<Entry<String, String>>> searchLoggersBy(String search)
+			throws Exception
+	{
+		Enumeration<Logger> loggers = getLoggers();
+		List<List<Entry<String, String>>> loggerList = new ArrayList<List<Entry<String, String>>>();
+
+		if(search == null)
+		{
+			search = "";
+		}
+
+		while(loggers.hasMoreElements())
+		{
+			Logger targetLogger = loggers.nextElement();
+
+			if(!targetLogger.getName().contains(search))
+			{
+				continue;
+			}
+
+			List<Entry<String, String>> entry = AppenderConvert.toList(targetLogger);
+			loggerList.add(entry);
+		}
+
+//		ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
+//		ObjectOutputStream objectOut = new ObjectOutputStream(byteOut);
+//
+//		objectOut.writeObject(loggerList);
+
+		return loggerList;
 	}
 }

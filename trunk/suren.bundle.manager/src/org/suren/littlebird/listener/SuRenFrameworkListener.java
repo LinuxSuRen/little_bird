@@ -12,7 +12,8 @@ public class SuRenFrameworkListener implements FrameworkListener, SuRenListener
 	{
 		int code = event.getType();
 
-		logger.trace("Framework Event Happened, type : " + getTypeName(code));
+		logger.trace("Framework Event Happened, type : " + getTypeName(code) +
+				" - " + 		event.getBundle().getSymbolicName());
 	}
 
 	public String getTypeName(int type)
