@@ -12,7 +12,8 @@ public class SuRenBundleListener implements BundleListener, SuRenListener
 	{
 		int code = event.getType();
 
-		logger.trace("Bundle Event Happened, type : " + getTypeName(code));
+		logger.trace("Bundle Event Happened, type : " + getTypeName(code) +
+				" - " + 		event.getBundle().getSymbolicName());
 	}
 
 	public String getTypeName(int type)

@@ -1,12 +1,14 @@
  package org.suren.littlebird.util;
 
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.List;
 import java.util.Map.Entry;
 
 import org.apache.log4j.Appender;
 import org.apache.log4j.FileAppender;
 import org.apache.log4j.Layout;
+import org.apache.log4j.Logger;
 import org.apache.log4j.PatternLayout;
 import org.apache.log4j.RollingFileAppender;
 import org.apache.log4j.spi.Filter;
@@ -93,6 +95,33 @@ public class AppenderConvert
 		}
 
 		return data;
+	}
+
+	public static List<Entry<String, String>> toList(Logger logger)
+	{
+		if(logger == null)
+		{
+			return null;
+		}
+
+		List<Entry<String, String>> entryList = new ArrayList<Entry<String, String>>();
+
+		int bridgesCount = 0;
+		@SuppressWarnings("unchecked")
+		Enumeration<Appender> appenders = logger.getAllAppenders();
+		while(appenders.hasMoreElements())
+		{
+			if(appenders.nextElement() != null)
+			{
+				bridgesCount++;
+			}
+		}
+
+		add("name", logger.getName(), entryList);
+		add("level", logger.getEffectiveLevel().toString(), entryList);
+		add("bridges_count", String.valueOf(bridgesCount), entryList);
+
+		return entryList;
 	}
 
 	private static void add(String key, String value, List<Entry<String, String>> list)

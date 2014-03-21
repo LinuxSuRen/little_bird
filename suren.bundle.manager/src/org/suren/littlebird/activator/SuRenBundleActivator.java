@@ -66,7 +66,22 @@ public class SuRenBundleActivator implements BundleActivator
 
 	private void register(Server server, Class<?> clazz)
 	{
+		String name = null;
 		if(server == null)
+		{
+			return;
+		}
+
+		try
+		{
+			name = server.getName();
+		}
+		catch(Exception e)
+		{
+			logger.error("get name error.", e);
+		}
+
+		if(name == null)
 		{
 			return;
 		}
@@ -75,14 +90,14 @@ public class SuRenBundleActivator implements BundleActivator
 
 		properties.put("osgi.remote.interfaces", "*");
 		properties.put("osgi.remote.configuration.type", "pojo");
-		properties.put("osgi.remote.configuration.pojo.address", addrValue + server.getName());
+		properties.put("osgi.remote.configuration.pojo.address", addrValue + name);
 
 		properties.put("service.exported.interfaces", "*");
 		properties.put("service.exported.intents", "SOAP");
 		properties.put("service.exported.configs", "org.apache.cxf.ws");
-		properties.put("org.apache.cxf.ws.address", addrValue + server.getName());
+		properties.put("org.apache.cxf.ws.address", addrValue + name);
 
-		logger.info(addrValue + server.getName());
+		logger.info(addrValue + name);
 
 		ServiceRegistration registration = context.registerService(clazz.getName(), server, properties);
 		registrationList.add(registration);

@@ -1,9 +1,12 @@
 package org.suren.littlebird.po;
 
+import java.io.Serializable;
 import java.util.Map.Entry;
 
-public class DataEntry<K, V> implements Entry<K, V>
+public class DataEntry<K, V> implements Entry<K, V>, Serializable
 {
+	private static final long	serialVersionUID	= 1L;
+
 	private K key;
 	private V value;
 

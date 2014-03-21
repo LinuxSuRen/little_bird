@@ -1,6 +1,8 @@
 package org.suren.littlebird.server;
 
-public interface Server
+import java.rmi.Remote;
+
+public interface Server extends Remote
 {
-	public  String getName();
+	public  String getName() throws Exception;
 }
