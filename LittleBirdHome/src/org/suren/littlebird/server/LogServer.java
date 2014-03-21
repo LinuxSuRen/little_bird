@@ -36,7 +36,7 @@ public class LogServer extends SimpleServer
 		}
 		
 		patternLayout = new PatternLayout(logLayout);
-		logServerListener.printMessage("log server init success.");
+		logServerListener.printMessage("log server init success.\n");
 		
 		return true;
 	}
@@ -46,7 +46,7 @@ public class LogServer extends SimpleServer
 	{
 		if(!isInited())
 		{
-			logServerListener.printMessage("log server no inited.");
+			logServerListener.printMessage("log server no inited.\n");
 			
 			return;
 		}
@@ -69,7 +69,7 @@ public class LogServer extends SimpleServer
 					continue;
 				}
 				
-				logServerListener.printMessage("get ticket : " + info);
+				logServerListener.printMessage("get ticket : " + info + "\n");
 			}
 			catch (InterruptedException e1)
 			{
@@ -158,7 +158,7 @@ public class LogServer extends SimpleServer
 				
 				if(!(obj instanceof LoggingEvent))
 				{
-					logServerListener.printMessage("not correct object.");
+					logServerListener.printMessage("not correct object.\n");
 					
 					continue;
 				}

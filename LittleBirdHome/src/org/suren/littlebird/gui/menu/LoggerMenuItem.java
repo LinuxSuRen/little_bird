@@ -13,9 +13,15 @@ import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.net.InetAddress;
+import java.net.MalformedURLException;
 import java.net.Socket;
+import java.rmi.Naming;
+import java.rmi.NotBoundException;
+import java.rmi.RemoteException;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -68,6 +74,7 @@ public class LoggerMenuItem extends ArchMenu<LoggerMgrSetting>
 	private final String	HEAD_NUM		= "num";
 	private final String	HEAD_NAME		= "name";
 	private final String	HEAD_LEVEL		= "level";
+	private final String 	HEAD_BRIDGES	= "bridges";
 	private final String	HEAD_VALUE		= "value";
 	
 	private final int LogServerStarted = 0x1;
@@ -78,6 +85,7 @@ public class LoggerMenuItem extends ArchMenu<LoggerMgrSetting>
 	
 	private LogServer server;
 	private LogServerListener logServerListener;
+	private JTextAreaAppender appender;
 	
 	@Action
 	private ActionListener action = new ActionListener()
@@ -125,6 +133,10 @@ public class LoggerMenuItem extends ArchMenu<LoggerMgrSetting>
 		final SuRenComboBox filterBox = new SuRenComboBox();
 		final JButton reloadBut = new JButton("Reload");
 		JButton settingBut = new JButton("Setting");
+		final JTextField bridgeField = new JTextField(10);
+		JButton cleanBridgeBut = new JButton("CleanBridge");
+		final JTextField filterField = new JTextField(10);
+		JButton addFilterBut = new JButton("AddFilter");
 		SuRenStatusButton logSerControlBut = new SuRenStatusButton();
 		
 		logSerControlBut.addStatus(LogServerStarted, "Stop");
@@ -137,6 +149,11 @@ public class LoggerMenuItem extends ArchMenu<LoggerMgrSetting>
 		controlBar.add(filterBox);
 		controlBar.add(reloadBut);
 		controlBar.add(settingBut);
+		controlBar.addSeparator();
+		controlBar.add(bridgeField);
+		controlBar.add(cleanBridgeBut);
+		controlBar.add(filterField);
+		controlBar.add(addFilterBut);
 		controlBar.addSeparator();
 		controlBar.add(logSerControlBut);
 		
@@ -153,6 +170,8 @@ public class LoggerMenuItem extends ArchMenu<LoggerMgrSetting>
 		reloadBut.setMnemonic('r');
 		settingBut.setMnemonic('g');
 		logSerControlBut.setMnemonic('t');
+		cleanBridgeBut.setMnemonic('c');
+		bridgeField.setToolTipText("Bridges");
 		filterBox.setEditable(true);
 		filterBox.setToolTipText("Ctrl+E");
 		filterBox.registerKeyboardAction(new FocusAndSelectListener(),
@@ -254,6 +273,83 @@ public class LoggerMenuItem extends ArchMenu<LoggerMgrSetting>
 			public void actionPerformed(ActionEvent e)
 			{
 				settingBar.setVisible(!settingBar.isVisible());
+			}
+		});
+		
+		cleanBridgeBut.addActionListener(new ActionListener()
+		{
+			
+			@Override
+			public void actionPerformed(ActionEvent e)
+			{
+				LoggerMgrSetting cfg = loadCfg();
+				if(cfg == null)
+				{
+					return;
+				}
+				
+				LoggerServer loggerServer = getLoggerServer();
+				String bridgeName = bridgeField.getText();
+				int[] rows = table.getSelectedRows();
+				boolean result = false;
+				
+				if("".equals(bridgeName))
+				{
+					for(int row : rows)
+					{
+						Object name = table.getValueAt(row, HEAD_NAME);
+						if(name == null)
+						{
+							continue;
+						}
+						
+						result = result | loggerServer.removeBridge(name.toString(),
+								getLocalAddress(),
+								cfg.getBridgePort());
+					}
+				}
+				else
+				{
+					int count = loggerServer.clearBridges(bridgeName);
+					
+					appender.appendLine("Clear Bridges : " + count);
+					
+					result = count > 0;
+				}
+				
+				if(result)
+				{
+					reloadBut.doClick();
+				}
+			}
+		});
+		
+		addFilterBut.addActionListener(new ActionListener()
+		{
+			
+			@Override
+			public void actionPerformed(ActionEvent e)
+			{
+				String filter = filterField.getText();
+				if("".equals(filter))
+				{
+					return;
+				}
+
+				int[] rows = table.getSelectedRows();
+				LoggerServer loggerServer = getLoggerServer();
+				
+				for(int row : rows)
+				{
+					Object name = table.getValueAt(row, HEAD_NAME);
+					if(name == null)
+					{
+						continue;
+					}
+
+					loggerServer.clearFilter(name.toString(), "127.0.0.16789");
+					loggerServer.addFilter(name.toString(), "127.0.0.16789", filter);
+				}
 			}
 		});
 		
@@ -374,13 +470,14 @@ public class LoggerMenuItem extends ArchMenu<LoggerMgrSetting>
 		final JToolBar toolBar = new JToolBar();
 		toolBar.setName("SettingBar");
 		toolBar.setVisible(false);
-		toolBar.setLayout(new GridLayout(3, 4));
+		toolBar.setLayout(new GridLayout(4, 4));
 		
 		final JTextField remoteField = new JTextField();
 		final JTextField remotePortField = new JTextField();
 		final JTextField localPortField = new JTextField();
 		final JTextField consoleBufferField = new JTextField();
 		final JTextField logLayoutField = new JTextField();
+		final JComboBox agentTypeBox = new JComboBox();
 		JButton cancelBut = new JButton("Cancel");
 		JButton saveBut = new JButton("Save");
 		
@@ -397,6 +494,8 @@ public class LoggerMenuItem extends ArchMenu<LoggerMgrSetting>
 		toolBar.add(logLayoutField);
 		toolBar.add(new JLabel("ConsoleBuffer:"));
 		toolBar.add(consoleBufferField);
+		toolBar.add(new JLabel("AgentType:"));
+		toolBar.add(agentTypeBox);
 		toolBar.add(cancelBut);
 		toolBar.add(saveBut);
 		
@@ -408,6 +507,16 @@ public class LoggerMenuItem extends ArchMenu<LoggerMgrSetting>
 			localPortField.setText(String.valueOf(loggerMgrCfg.getBridgePort()));
 			consoleBufferField.setText(String.valueOf(loggerMgrCfg.getConsoleBuffer()));
 			logLayoutField.setText(loggerMgrCfg.getLogLayout());
+			
+			Set<String> agentType = loggerMgrCfg.getAgentType();
+			if(agentType != null)
+			{
+				for(Object agent : agentType.toArray())
+				{
+					agentTypeBox.addItem(agent);
+				}
+			}
+			agentTypeBox.setSelectedItem(loggerMgrCfg.getAgent());
 		}
 		
 		cancelBut.addActionListener(new ActionListener()
@@ -434,6 +543,7 @@ public class LoggerMenuItem extends ArchMenu<LoggerMgrSetting>
 				String localPortStr = localPortField.getText();
 				String logLayout = logLayoutField.getText();
 				String consoleBufferText = consoleBufferField.getText();
+				String agent = agentTypeBox.getSelectedItem().toString();
 				
 				if("".equals(remotePortStr) || "".equals(remoteStr)
 						|| "".equals(localPortStr)
@@ -470,12 +580,16 @@ public class LoggerMenuItem extends ArchMenu<LoggerMgrSetting>
 				loggerMgrCfg.setBridgePort(localPort);
 				loggerMgrCfg.setLogLayout(logLayout);
 				loggerMgrCfg.setConsoleBuffer(consoleBuffer);
+				loggerMgrCfg.setAgent(agent);
 				
 				if(saveCfg(loggerMgrCfg))
 				{
 					toolBar.setVisible(false);
 					
-					server.setLogLayout(logLayout);
+					if(server != null)
+					{
+						server.setLogLayout(logLayout);
+					}
 				}
 			}
 		});
@@ -487,13 +601,14 @@ public class LoggerMenuItem extends ArchMenu<LoggerMgrSetting>
 	{
 		final SuRenTable detailTable = new SuRenTable();
 		
-		table.setHeaders(HEAD_NUM, HEAD_NAME, HEAD_LEVEL);
+		table.setHeaders(HEAD_NUM, HEAD_NAME, HEAD_LEVEL, HEAD_BRIDGES);
 		table.setColumnSorterClass(0, Number.class);
+		table.setColumnSorterClass(3, Number.class);
 		
 		detailTable.setHeaders(HEAD_NUM, HEAD_VALUE);
 		
 		JTextArea logArea = new JTextArea();
-		final JTextAreaAppender appender = new JTextAreaAppender();
+		appender = new JTextAreaAppender();
 		appender.setTargetArea(logArea);
 		
 		createTextPopuMenu(logArea);
@@ -868,11 +983,13 @@ public class LoggerMenuItem extends ArchMenu<LoggerMgrSetting>
 		final JPopupMenu menu = new JPopupMenu();
 		
 		JMenuItem lineWrapItem = new JMenuItem("LineWrap");
+		JMenuItem autoScollItem = new JMenuItem("AutoScoll");
 		JMenuItem backColorItem = new JMenuItem("BackColor");
 		JMenuItem foreColorItem = new JMenuItem("ForeColor");
 		JMenuItem clearItem = new JMenuItem("Clear");
 		
 		menu.add(lineWrapItem);
+		menu.add(autoScollItem);
 		menu.add(backColorItem);
 		menu.add(foreColorItem);
 		menu.add(clearItem);
@@ -893,6 +1010,16 @@ public class LoggerMenuItem extends ArchMenu<LoggerMgrSetting>
 				
 				loggerMgrCfg.setLineWrap(logArea.getLineWrap());
 				saveCfg(loggerMgrCfg);
+			}
+		});
+		
+		autoScollItem.addActionListener(new ActionListener()
+		{
+			
+			@Override
+			public void actionPerformed(ActionEvent e)
+			{
+				appender.setAutoScoll(!appender.isAutoScoll());
 			}
 		});
 		
@@ -1018,31 +1145,89 @@ public class LoggerMenuItem extends ArchMenu<LoggerMgrSetting>
 		return reload(table, filter, true);
 	}
 	
+	@SuppressWarnings("unchecked")
 	private int reload(SuRenTable table, String filter, boolean reload)
 	{
 		LoggerServer loggerServer = getLoggerServer();
 		
-		List<String> names;
+		List<List<Entry<String, String>>> loggers = null;
 		if(filter == null)
 		{
-			names = loggerServer.getNames();
+			loggers = loggerServer.getAllLoggers();
 		}
 		else
 		{
-			names = loggerServer.searchBy(filter);
+			loggers = loggerServer.searchLoggersBy(filter);
 		}
 		
-		int len = names.size();
+		if(loggers == null)
+		{
+			return 0;
+		}
+		
+//		ByteArrayInputStream byteInput = new ByteArrayInputStream(loggersByte);
+//		ObjectInputStream objectInput;
+//		try
+//		{
+//			objectInput = new ObjectInputStream(byteInput);
+//			Object sourceObj = objectInput.readObject();
+//			
+//			if(sourceObj instanceof List<?>)
+//			{
+//				loggers = (List<List<Entry<String, String>>>) sourceObj;
+//			}
+//			else
+//			{
+//				return 0;
+//			}
+//		}
+//		catch (IOException e)
+//		{
+//			e.printStackTrace();
+//		}
+//		catch (ClassNotFoundException e)
+//		{
+//			e.printStackTrace();
+//		}
+		
+		int len = loggers.size();
 		Vector<Object>[] items = new Vector[len];
 		for(int i = 0; i < len; ++i)
 		{
 			Vector<Object> item = new Vector<Object>();
 			
-			String name = names.get(i);
+			String name = "";
+			String level = "";
+			int count = 0;
+			
+			List<Entry<String, String>> logger = loggers.get(i);
+			for(Entry<String, String> entry : logger)
+			{
+				if("name".equals(entry.getKey()))
+				{
+					name = entry.getValue();
+				}
+				else if("level".equals(entry.getKey()))
+				{
+					level = entry.getValue();
+				}
+				else if("bridges_count".equals(entry.getKey()))
+				{
+					try
+					{
+						count = Integer.parseInt(entry.getValue());
+					}
+					catch(NumberFormatException e)
+					{
+						e.printStackTrace();
+					}
+				}
+			}
 			
 			item.add(i);
 			item.add(name);
-			item.add(loggerServer.getLevel(name));
+			item.add(level);
+			item.add(count);
 			
 			items[i] = item;
 		}
@@ -1128,14 +1313,42 @@ public class LoggerMenuItem extends ArchMenu<LoggerMgrSetting>
 		
 		String host = loggerMgrCfg.getHost();
 		int port = loggerMgrCfg.getPort();
+		String agent = loggerMgrCfg.getAgent();
 		
 		updateStatus(host, ":", port);
 		
-		ClientProxy<LoggerServer> proxy =
-				new ClientProxy<LoggerServer>(host, port, "logger");
-		ClientProxyFactoryBean factory = proxy.getClientProxy(LoggerServer.class);
+		if("webservice".equalsIgnoreCase(agent))
+		{
+			ClientProxy<LoggerServer> proxy =
+					new ClientProxy<LoggerServer>(host, port, "logger");
+			ClientProxyFactoryBean factory = proxy.getClientProxy(LoggerServer.class);
+			
+			return (LoggerServer) factory.create();
+		}
+		else if("jmx".equalsIgnoreCase(agent))
+		{
+			try
+			{
+				String url = "rmi://" + host + ":" + port + "/RemoteLoggerServer";
+				LoggerServer logger = (LoggerServer) Naming.lookup(url);
+				
+				return logger;
+			}
+			catch (MalformedURLException e)
+			{
+				e.printStackTrace();
+			}
+			catch (RemoteException e)
+			{
+				e.printStackTrace();
+			}
+			catch (NotBoundException e)
+			{
+				e.printStackTrace();
+			}
+		}
 		
-		return (LoggerServer) factory.create();
+		return null;
 	}
 	
 	private JButton getDividerBut(JSplitPane splitPane, int index)

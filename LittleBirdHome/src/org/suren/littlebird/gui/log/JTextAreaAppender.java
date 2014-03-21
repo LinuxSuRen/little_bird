@@ -11,9 +11,10 @@ public class JTextAreaAppender extends DefaultAppender
 	public final int MAX_ROWS = 10000;
 	public final int MIN_ROWS = 1;
 	private int rowsLimit = 500;
+	private boolean autoScoll = true;
 	
 	@Override
-	public void append(CharSequence charSeq)
+	public synchronized void append(CharSequence charSeq)
 	{
 		if(charSeq == null || targetArea == null)
 		{
@@ -21,7 +22,11 @@ public class JTextAreaAppender extends DefaultAppender
 		}
 		
 		targetArea.append(charSeq.toString());
-		targetArea.setCaretPosition(targetArea.getText().length() - 1);
+		
+		if(autoScoll)
+		{
+			targetArea.setCaretPosition(targetArea.getText().length() - 1);
+		}
 		
 		int leftRows = rowsLimit - targetArea.getLineCount();
 		if(leftRows < 0)
@@ -70,5 +75,15 @@ public class JTextAreaAppender extends DefaultAppender
 		}
 		
 		this.rowsLimit = rowsLimit;
+	}
+
+	public boolean isAutoScoll()
+	{
+		return autoScoll;
+	}
+
+	public void setAutoScoll(boolean autoScoll)
+	{
+		this.autoScoll = autoScoll;
 	}
 }
