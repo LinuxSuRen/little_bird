@@ -89,7 +89,7 @@ public class JarUpdater
 		{
 			String clsPath = packageName.replace(".", "/") + ".class";
 			
-			cover(dstFile, new File(outDir, clsPath), clsPath);
+			cover(dstFile, new File(outDir, clsPath), clsPath, param.getComment());
 			
 			new File(clsPath).delete();
 		}
@@ -112,13 +112,14 @@ public class JarUpdater
 		
 		if(args != null && args.length >= 2)
 		{
-			String[] paramArray = Arrays.copyOf(args, 3);
+			String[] paramArray = Arrays.copyOf(args, 4);
 			
 			param = new Param();
 			
 			param.setOutDir(paramArray[0]);
 			param.setTargetJar(paramArray[1]);
-			param.setMainCls(paramArray[2]);
+			param.setComment(paramArray[2]);
+			param.setMainCls(paramArray[3]);
 		}
 		
 		return param;
@@ -126,7 +127,7 @@ public class JarUpdater
 	
 	private void usagePrint()
 	{
-		System.err.println("Usage:cmd outDir path mainCls");
+		System.err.println("Usage:cmd outDir path comment mainCls");
 	}
 	
 	private File backupTo(String src, int hashCode)
@@ -161,15 +162,16 @@ public class JarUpdater
 		}
 	}
 	
-	public void cover(File src, File targetFile, String path) throws Exception
-	{		
+	public void cover(File src, File targetFile, String path, String comment) throws Exception
+	{
 		File tmpJarFile = File.createTempFile("update", "jarfile");
 		tmpJarFile.deleteOnExit();
 		
 		JarInputStream jarIn = new JarInputStream(new FileInputStream(src));
 		JarOutputStream jarOut = new JarOutputStream(new FileOutputStream(tmpJarFile));//, jarIn.getManifest());
 		Map<String, String> digestMap = new HashMap<String, String>();
-		
+	
+		comment = comment == null ? "" : comment;
 		JarEntry entry = null;
 		boolean notFound = true;
 		StringBuffer buffer = new StringBuffer();
@@ -240,6 +242,8 @@ public class JarUpdater
 				e.printStackTrace();
 			}
 		}
+		
+		jarOut.setComment(comment);
 		
 		jarIn.close();
 		jarOut.close();
