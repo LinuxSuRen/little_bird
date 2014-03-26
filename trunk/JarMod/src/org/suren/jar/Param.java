@@ -9,6 +9,7 @@ public class Param
 	private String	outDir;
 	private String	targetJar;
 	private String	mainCls;
+	private String comment;
 	
 	public String getOutDir()
 	{
@@ -33,5 +34,13 @@ public class Param
 	public void setMainCls(String mainCls)
 	{
 		this.mainCls = mainCls;
+	}
+	public String getComment()
+	{
+		return comment;
+	}
+	public void setComment(String comment)
+	{
+		this.comment = comment;
 	}
 }
