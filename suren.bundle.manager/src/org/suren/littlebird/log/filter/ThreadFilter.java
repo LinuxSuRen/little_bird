@@ -1,4 +1,4 @@
-package org.suren.littlebird.log;
+package org.suren.littlebird.log.filter;
 
 import org.apache.log4j.spi.Filter;
 import org.apache.log4j.spi.LoggingEvent;
@@ -18,7 +18,7 @@ public class ThreadFilter extends Filter
 		}
 		else
 		{
-			return Filter.DENY;
+			return Filter.NEUTRAL;
 		}
 	}
 
@@ -31,5 +31,4 @@ public class ThreadFilter extends Filter
 	{
 		this.threadName = threadName;
 	}
-
 }

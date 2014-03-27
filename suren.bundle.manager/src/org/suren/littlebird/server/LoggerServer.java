@@ -25,7 +25,17 @@ public interface LoggerServer extends Serializable, Server
 	public List<Entry<String, String>> bridgeInfo(String loggerName,
 			String bridgeName) throws Exception;
 
-	public boolean addFilter(String loggerName, String bridgeName,
+	public boolean addThreadFilter(String loggerName, String bridgeName,
 			String threadName) throws Exception;
+	public String getThreadFilter(String loggerName, String bridgeName) throws Exception;
+
+	public boolean addLevelMatchFilter(String loggerName, String bridgeName,
+			String level) throws Exception;
+	public String getLevelMatchFilter(String loggerName, String bridgeName) throws Exception;
+
+	public boolean addStrMatchFilter(String loggerName, String bridgeName,
+			String match);
+	public String getStrMatchFilter(String loggerName, String bridgeName) throws Exception;
+
 	public boolean clearFilter(String loggerName, String bridgeName) throws Exception;
 }

@@ -102,12 +102,52 @@ public class RemoteLoggerServer extends UnicastRemoteObject implements
 		return server.bridgeInfo(loggerName, bridgeName);
 	}
 
-	public boolean addFilter(String loggerName, String bridgeName,
+	public boolean addThreadFilter(String loggerName, String bridgeName,
 			String threadName) throws Exception
 	{
 		DefaultLoggerServer server = new DefaultLoggerServer();
 
-		return server.addFilter(loggerName, bridgeName, threadName);
+		return server.addThreadFilter(loggerName, bridgeName, threadName);
+	}
+
+	public String getThreadFilter(String loggerName, String bridgeName)
+			throws Exception
+	{
+		DefaultLoggerServer server = new DefaultLoggerServer();
+
+		return server.getThreadFilter(loggerName, bridgeName);
+	}
+
+	public boolean addLevelMatchFilter(String loggerName, String bridgeName,
+			String level) throws Exception
+	{
+		DefaultLoggerServer server = new DefaultLoggerServer();
+
+		return server.addLevelMatchFilter(loggerName, bridgeName, level);
+	}
+
+	public String getLevelMatchFilter(String loggerName, String bridgeName)
+			throws Exception
+	{
+		DefaultLoggerServer server = new DefaultLoggerServer();
+
+		return server.getLevelMatchFilter(loggerName, bridgeName);
+	}
+
+	public boolean addStrMatchFilter(String loggerName, String bridgeName,
+			String match)
+	{
+		DefaultLoggerServer server = new DefaultLoggerServer();
+
+		return server.addStrMatchFilter(loggerName, bridgeName, match);
+	}
+
+	public String getStrMatchFilter(String loggerName, String bridgeName)
+			throws Exception
+	{
+		DefaultLoggerServer server = new DefaultLoggerServer();
+
+		return server.getStrMatchFilter(loggerName, bridgeName);
 	}
 
 	public boolean clearFilter(String loggerName, String bridgeName)

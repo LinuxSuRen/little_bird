@@ -6,12 +6,14 @@ import java.util.Hashtable;
 import java.util.List;
 
 import org.apache.log4j.Logger;
+//import org.eclipse.osgi.framework.console.CommandProvider;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.BundleListener;
 import org.osgi.framework.FrameworkListener;
 import org.osgi.framework.ServiceListener;
 import org.osgi.framework.ServiceRegistration;
+//import org.suren.littlebird.cmd.SuRenCommand;
 import org.suren.littlebird.listener.SuRenBundleListener;
 import org.suren.littlebird.listener.SuRenFrameworkListener;
 import org.suren.littlebird.listener.SuRenServiceListener;
@@ -60,6 +62,8 @@ public class SuRenBundleActivator implements BundleActivator
 		context.addBundleListener(surenBundleListener);
 		context.addFrameworkListener(surenFrameworkListener);
 		context.addServiceListener(surenServiceListener);
+
+//		context.registerService(CommandProvider.class.getName(), new SuRenCommand(), null);
 
 		logger.info("SuRenListener Regist Over.");
 	}

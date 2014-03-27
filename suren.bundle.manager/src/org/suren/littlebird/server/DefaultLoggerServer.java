@@ -1,7 +1,5 @@
 package org.suren.littlebird.server;
 
-import java.io.ByteArrayOutputStream;
-import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
@@ -12,8 +10,13 @@ import org.apache.log4j.Level;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.log4j.net.SocketAppender;
+import org.apache.log4j.spi.Filter;
 import org.apache.log4j.spi.LoggerRepository;
 import org.apache.log4j.spi.LoggingEvent;
+import org.apache.log4j.varia.LevelMatchFilter;
+import org.apache.log4j.varia.StringMatchFilter;
+import org.suren.littlebird.log.filter.ClosedFilter;
+import org.suren.littlebird.log.filter.ThreadFilter;
 import org.suren.littlebird.util.AppenderConvert;
 
 public class DefaultLoggerServer implements LoggerServer
@@ -283,6 +286,17 @@ public class DefaultLoggerServer implements LoggerServer
 		return logger;
 	}
 
+	private Appender  getAppender(String loggerName, String bridgeName)
+	{
+		Logger targetLogger = getLogger(loggerName);
+		if(targetLogger == null)
+		{
+			return null;
+		}
+
+		return targetLogger.getAppender(bridgeName);
+	}
+
 	public List<Entry<String, String>> bridgeInfo(String loggerName, String bridgeName)
 	{
 		Logger targetLogger  = getLogger(loggerName);
@@ -300,16 +314,178 @@ public class DefaultLoggerServer implements LoggerServer
 		return AppenderConvert.toList(appender);
 	}
 
-	public boolean addFilter(String loggerName, String bridgeName,
+	public boolean addThreadFilter(String loggerName, String bridgeName,
 			String threadName) throws Exception
 	{
-		return false;
+		Appender appender = getAppender(loggerName, bridgeName);
+		if(appender == null)
+		{
+			return false;
+		}
+
+		ThreadFilter threadFilter = new ThreadFilter();
+		threadFilter.setThreadName(threadName);
+
+		addOrUpdateFilter(appender, threadFilter);
+
+		return true;
+	}
+
+	public String getThreadFilter(String loggerName, String bridgeName)
+			throws Exception
+	{
+		Filter filter = getFilter(getAppender(loggerName, bridgeName),
+				ThreadFilter.class);
+		if(filter != null && filter instanceof ThreadFilter)
+		{
+			return ((ThreadFilter) filter).getThreadName();
+		}
+
+		return "";
+	}
+
+	public boolean addLevelMatchFilter(String loggerName, String bridgeName,
+			String level) throws Exception
+	{
+		Appender appender = getAppender(loggerName, bridgeName);
+		if(appender == null)
+		{
+			return false;
+		}
+
+		LevelMatchFilter levelMatchFilter = new LevelMatchFilter();
+		levelMatchFilter.setLevelToMatch(level);
+
+		addOrUpdateFilter(appender, levelMatchFilter);
+
+		return true;
+	}
+
+	public String getLevelMatchFilter(String loggerName, String bridgeName)
+			throws Exception
+	{
+		Filter filter = getFilter(getAppender(loggerName, bridgeName),
+				LevelMatchFilter.class);
+		if(filter != null && filter instanceof LevelMatchFilter)
+		{
+			return ((LevelMatchFilter) filter).getLevelToMatch();
+		}
+
+		return "";
+	}
+
+	public boolean addStrMatchFilter(String loggerName, String bridgeName,
+			String match)
+	{
+		Appender appender = getAppender(loggerName, bridgeName);
+		if(appender == null)
+		{
+			return false;
+		}
+
+		StringMatchFilter stringMatchFilter = new StringMatchFilter();
+		stringMatchFilter.setStringToMatch(match);
+
+		addOrUpdateFilter(appender, stringMatchFilter);
+
+		return true;
+	}
+
+	public String getStrMatchFilter(String loggerName, String bridgeName)
+			throws Exception
+	{
+		Filter filter = getFilter(getAppender(loggerName, bridgeName),
+				StringMatchFilter.class);
+		if(filter != null && filter instanceof StringMatchFilter)
+		{
+			return ((StringMatchFilter) filter).getStringToMatch();
+		}
+
+		return "";
+	}
+
+	private void addOrUpdateFilter(Appender appender, Filter target)
+	{
+		if(appender == null || target == null)
+		{
+			return;
+		}
+
+		Filter filter = appender.getFilter();
+		if(filter == null)
+		{
+			appender.addFilter(target);
+			target.setNext(new ClosedFilter());
+
+			return;
+		}
+
+		while(true)
+		{
+			if(filter.getClass().equals(target.getClass()))
+			{
+				Filter nextFilter = filter.getNext();
+
+				appender.clearFilters();
+				appender.addFilter(target);
+				target.setNext(nextFilter);
+
+				break;
+			}
+
+			if(filter.getNext() == null)
+			{
+				filter.setNext(target);
+				target.setNext(new ClosedFilter());
+
+				break;
+			}
+
+			if(filter.getNext() instanceof ClosedFilter)
+			{
+				filter.setNext(target);
+				target.setNext(new ClosedFilter());
+
+				break;
+			}
+
+			filter = filter.getNext();
+		}
+	}
+
+	public Filter getFilter(Appender appender, Class<?> filterCls)
+	{
+		if(appender == null || filterCls == null)
+		{
+			return null;
+		}
+
+		Filter filter = appender.getFilter();
+		while(filter != null)
+		{
+			if(filter.getClass().equals(filterCls))
+			{
+				return filter;
+			}
+
+			filter = filter.getNext();
+		}
+
+		return null;
 	}
 
 	public boolean clearFilter(String loggerName, String bridgeName)
 			throws Exception
 	{
-		return false;
+		Appender appender = getAppender(loggerName, bridgeName);
+		if(appender == null)
+		{
+			return false;
+		}
+
+		appender.clearFilters();
+
+		return true;
 	}
 
 	public List<List<Entry<String, String>>> getAllLoggers() throws Exception
@@ -340,11 +516,6 @@ public class DefaultLoggerServer implements LoggerServer
 			List<Entry<String, String>> entry = AppenderConvert.toList(targetLogger);
 			loggerList.add(entry);
 		}
-
-//		ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
-//		ObjectOutputStream objectOut = new ObjectOutputStream(byteOut);
-//
-//		objectOut.writeObject(loggerList);
 
 		return loggerList;
 	}
