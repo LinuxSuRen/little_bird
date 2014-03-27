@@ -13,9 +13,7 @@ import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.ObjectInputStream;
 import java.net.InetAddress;
 import java.net.MalformedURLException;
 import java.net.Socket;
@@ -135,8 +133,6 @@ public class LoggerMenuItem extends ArchMenu<LoggerMgrSetting>
 		JButton settingBut = new JButton("Setting");
 		final JTextField bridgeField = new JTextField(10);
 		JButton cleanBridgeBut = new JButton("CleanBridge");
-		final JTextField filterField = new JTextField(10);
-		JButton addFilterBut = new JButton("AddFilter");
 		SuRenStatusButton logSerControlBut = new SuRenStatusButton();
 		
 		logSerControlBut.addStatus(LogServerStarted, "Stop");
@@ -152,8 +148,6 @@ public class LoggerMenuItem extends ArchMenu<LoggerMgrSetting>
 		controlBar.addSeparator();
 		controlBar.add(bridgeField);
 		controlBar.add(cleanBridgeBut);
-		controlBar.add(filterField);
-		controlBar.add(addFilterBut);
 		controlBar.addSeparator();
 		controlBar.add(logSerControlBut);
 		
@@ -320,35 +314,6 @@ public class LoggerMenuItem extends ArchMenu<LoggerMgrSetting>
 				if(result)
 				{
 					reloadBut.doClick();
-				}
-			}
-		});
-		
-		addFilterBut.addActionListener(new ActionListener()
-		{
-			
-			@Override
-			public void actionPerformed(ActionEvent e)
-			{
-				String filter = filterField.getText();
-				if("".equals(filter))
-				{
-					return;
-				}
-
-				int[] rows = table.getSelectedRows();
-				LoggerServer loggerServer = getLoggerServer();
-				
-				for(int row : rows)
-				{
-					Object name = table.getValueAt(row, HEAD_NAME);
-					if(name == null)
-					{
-						continue;
-					}
-
-					loggerServer.clearFilter(name.toString(), "127.0.0.16789");
-					loggerServer.addFilter(name.toString(), "127.0.0.16789", filter);
 				}
 			}
 		});
@@ -807,8 +772,8 @@ public class LoggerMenuItem extends ArchMenu<LoggerMgrSetting>
 				}
 				
 				int rowId = detailTable.getSelectedRow();
-				Object loggerName = detailTable.getData().get(HEAD_NAME);
-				Object name;
+				final Object loggerName = detailTable.getData().get(HEAD_NAME);
+				final Object name;
 				
 				if(rowId == -1 || loggerName == null
 						|| (name = detailTable.getValueAt(rowId, HEAD_VALUE)) == null)
@@ -816,6 +781,11 @@ public class LoggerMenuItem extends ArchMenu<LoggerMgrSetting>
 					return;
 				}
 				
+				loadInfo(loggerName.toString(), name.toString());
+			}
+			
+			private void loadInfo(final String loggerName, final String bridgeName)
+			{
 				LoggerServer loggerServer = getLoggerServer();
 				if(loggerServer == null)
 				{
@@ -823,7 +793,7 @@ public class LoggerMenuItem extends ArchMenu<LoggerMgrSetting>
 				}
 				
 				List<Entry<String, String>> bridgeInfo = loggerServer.bridgeInfo(
-						loggerName.toString(), name.toString());
+						loggerName, bridgeName);
 				if(bridgeInfo != null)
 				{
 					infoPanel.removeAll();
@@ -852,6 +822,122 @@ public class LoggerMenuItem extends ArchMenu<LoggerMgrSetting>
 						infoLayout.setConstraints(valueLabel, cons);
 						infoPanel.add(valueLabel);
 					}
+					
+					JLabel threadFilterLabel = new JLabel("ThreadFilter : ");
+					final JTextField threadFilterField = new JTextField(12);
+					cons.gridx = 1;
+					cons.gridy = ++len;
+					cons.weightx = 0;
+					infoLayout.setConstraints(threadFilterLabel, cons);
+					infoPanel.add(threadFilterLabel);
+					cons.gridx = 2;
+					cons.weightx = 1;
+					infoLayout.setConstraints(threadFilterField, cons);
+					infoPanel.add(threadFilterField);
+					
+					JLabel levelMatchFilterLabel = new JLabel("LevelMatchFilter : ");
+					final JTextField levelMatchFilterField = new JTextField(12);
+					cons.gridx = 1;
+					cons.gridy = ++len;
+					cons.weightx = 0;
+					infoLayout.setConstraints(levelMatchFilterLabel, cons);
+					infoPanel.add(levelMatchFilterLabel);
+					cons.gridx = 2;
+					cons.weightx = 1;
+					infoLayout.setConstraints(levelMatchFilterField, cons);
+					infoPanel.add(levelMatchFilterField);
+					
+					JLabel stringMatchFilterLabel = new JLabel("StringMatchFilter : ");
+					final JTextField stringMatchFilterField = new JTextField(12);
+					cons.gridx = 1;
+					cons.gridy = ++len;
+					cons.weightx = 0;
+					infoLayout.setConstraints(stringMatchFilterLabel, cons);
+					infoPanel.add(stringMatchFilterLabel);
+					cons.gridx = 2;
+					cons.weightx = 1;
+					infoLayout.setConstraints(stringMatchFilterField, cons);
+					infoPanel.add(stringMatchFilterField);
+					
+					JButton applyBut = new JButton("Apply");
+					JButton clearBut = new JButton("Clear");
+					cons.gridx = 1;
+					cons.gridy = ++len;
+					cons.weightx = 0;
+					infoLayout.setConstraints(applyBut, cons);
+					infoPanel.add(applyBut);
+					cons.gridx = 2;
+					cons.weightx = 1;
+					infoLayout.setConstraints(clearBut, cons);
+					infoPanel.add(clearBut);
+					
+					threadFilterField.setText(
+							loggerServer.getThreadFilter(loggerName, bridgeName));
+					levelMatchFilterField.setText(
+							loggerServer.getLevelMatchFilter(loggerName, bridgeName));
+					stringMatchFilterField.setText(
+							loggerServer.getStrMatchFilter(loggerName, bridgeName));
+					
+					applyBut.addActionListener(new ActionListener()
+					{
+						
+						@Override
+						public void actionPerformed(ActionEvent e)
+						{
+							LoggerServer loggerServer = getLoggerServer();
+							if(loggerServer == null)
+							{
+								return;
+							}
+							
+							String threadName = threadFilterField.getText();
+							String levelMatch = levelMatchFilterField.getText();
+							String stringMatch = stringMatchFilterField.getText();
+							boolean result = false;
+							
+							if(!"".equals(threadName))
+							{
+								result = result || loggerServer.addThreadFilter(
+										loggerName, bridgeName, threadName);
+							}
+							
+							if(!"".equals(levelMatch))
+							{
+								result = result || loggerServer.addLevelMatchFilter(
+										loggerName, bridgeName, levelMatch);
+							}
+							
+							if(!"".equals(stringMatch))
+							{
+								result = result || loggerServer.addStrMatchFilter(
+										loggerName, bridgeName, stringMatch);
+							}
+							
+							if(result)
+							{
+								loadInfo(loggerName, bridgeName);
+							}
+						}
+					});
+					
+					clearBut.addActionListener(new ActionListener()
+					{
+						
+						@Override
+						public void actionPerformed(ActionEvent e)
+						{
+							LoggerServer loggerServer = getLoggerServer();
+							if(loggerServer == null)
+							{
+								return;
+							}
+							
+							if(loggerServer.clearFilter(loggerName, bridgeName))
+							{
+								loadInfo(loggerName, bridgeName);
+							}
+						}
+					});
 				}
 			}
 		});
