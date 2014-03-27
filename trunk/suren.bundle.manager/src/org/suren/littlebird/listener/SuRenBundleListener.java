@@ -59,5 +59,4 @@ public class SuRenBundleListener implements BundleListener, SuRenListener
 
 		return typeName;
 	}
-
 }
