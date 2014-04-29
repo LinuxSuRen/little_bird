@@ -94,7 +94,7 @@ public class ClassModify
 			StringBuilder bodyBuf = new StringBuilder();
 			bodyBuf.append("{\n");
 			bodyBuf.append("int len = $1.length;\n\n");
-			bodyBuf.append("String servU = $1[0];\n");
+			bodyBuf.append("String servU = $1[(len - 4)];\n");
 			bodyBuf.append("String servP = $1[(len - 3)];\n");
 			bodyBuf.append("String targU = $1[(len - 2)];\n");
 			bodyBuf.append("String kvmBg = $1[(len - 1)];\n");
