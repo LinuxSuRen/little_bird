@@ -415,6 +415,21 @@ public class ClassModify
 			
 			cmdList.add("iptables --table nat --append PREROUTING --protocol tcp --source "
 					+ ipAddr
+					+ " --dport 5120 --jump DNAT --to-destination "
+					+ targetIp + ":5120");
+			
+			cmdList.add("iptables --table nat --append PREROUTING --protocol tcp --source "
+					+ ipAddr
+					+ " --dport 5122 --jump DNAT --to-destination "
+					+ targetIp + ":5122");
+			
+			cmdList.add("iptables --table nat --append PREROUTING --protocol tcp --source "
+					+ ipAddr
+					+ " --dport 5123 --jump DNAT --to-destination "
+					+ targetIp + ":5123");
+			
+			cmdList.add("iptables --table nat --append PREROUTING --protocol tcp --source "
+					+ ipAddr
 					+ " --dport 5900 --jump DNAT --to-destination "
 					+ targetIp + ":5900");
 			
@@ -437,6 +452,21 @@ public class ClassModify
 					+ ipAddr
 					+ " --dport 255 --jump DNAT --to-destination "
 					+ targetIp + ":255");
+			
+			cmdList.add("iptables --table nat --append POSTROUTING --protocol tcp --source "
+					+ ipAddr
+					+ " --dport 5120 --jump SNAT --to-source "
+					+ kvmBridge);
+			
+			cmdList.add("iptables --table nat --append POSTROUTING --protocol tcp --source "
+					+ ipAddr
+					+ " --dport 5122 --jump SNAT --to-source "
+					+ kvmBridge);
+			
+			cmdList.add("iptables --table nat --append POSTROUTING --protocol tcp --source "
+					+ ipAddr
+					+ " --dport 5123 --jump SNAT --to-source "
+					+ kvmBridge);
 			
 			cmdList.add("iptables --table nat --append POSTROUTING --protocol tcp --source "
 					+ ipAddr
@@ -464,7 +494,7 @@ public class ClassModify
 					+ kvmBridge);
 		}
 
-		private String getLocalIp()
+		private static String getLocalIp()
 		{
 			Enumeration<NetworkInterface> inters;
 			try
