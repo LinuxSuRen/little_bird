@@ -6,9 +6,10 @@ package org.suren.jar;
  */
 public class Param
 {
-	private String	outDir;
-	private String	targetJar;
-	private String	mainCls;
+	private String outDir;
+	private String targetJar;
+	private String digest;
+	private String mainCls;
 	private String comment;
 	
 	public String getOutDir()
@@ -26,6 +27,14 @@ public class Param
 	public void setTargetJar(String targetJar)
 	{
 		this.targetJar = targetJar;
+	}
+	public String getDigest()
+	{
+		return digest;
+	}
+	public void setDigest(String digest)
+	{
+		this.digest = digest;
 	}
 	public String getMainCls()
 	{

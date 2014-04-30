@@ -9,7 +9,9 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -82,23 +84,27 @@ public class JarUpdater
 			return false;
 		}
 		
-		clsModify.modify(targetJar, mainCls, outDir);
+		boolean modifyClsRes = clsModify.modify(targetJar, mainCls, outDir);
+		System.out.println("modifyClsRes : " + modifyClsRes);
 		
-		List<String> packageList = clsModify.getPackageList();
-		for(String packageName : packageList)
+		if(modifyClsRes)
 		{
-			String clsPath = packageName.replace(".", "/") + ".class";
-			
-			cover(dstFile, new File(outDir, clsPath), clsPath, param.getComment());
-			
-			new File(clsPath).delete();
-		}
+			List<String> packageList = clsModify.getPackageList();
+			for(String packageName : packageList)
+			{
+				String clsPath = packageName.replace(".", "/") + ".class";
+				
+				cover(dstFile, new File(outDir, clsPath), clsPath, param);
+				
+				new File(clsPath).delete();
+			}
 
-		for(String packageName : packageList)
-		{
-			String clsPath = packageName.replace(".", "/") + ".class";
-			
-			clean(new File(clsPath).getParent());
+			for(String packageName : packageList)
+			{
+				String clsPath = packageName.replace(".", "/") + ".class";
+				
+				clean(new File(clsPath).getParent());
+			}
 		}
 		
 		System.out.println("result file is : " + dstFile.getName());
@@ -112,17 +118,35 @@ public class JarUpdater
 		
 		if(args != null && args.length >= 2)
 		{
-			String[] paramArray = Arrays.copyOf(args, 4);
+			String[] paramArray = Arrays.copyOf(args, 5);
 			
 			param = new Param();
 			
 			param.setOutDir(paramArray[0]);
 			param.setTargetJar(paramArray[1]);
-			param.setComment(paramArray[2]);
-			param.setMainCls(paramArray[3]);
+			param.setDigest(paramArray[2]);
+			param.setComment(paramArray[3]);
+			param.setMainCls(paramArray[4]);
 		}
 		
+		paramDef(param);
+		
 		return param;
+	}
+	
+	private void paramDef(Param param)
+	{
+		if(param == null)
+		{
+			return;
+		}
+		
+		if(param.getComment() == null)
+		{
+			String timestamp = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss").format(new Date());
+			
+			param.setComment("auto modify by suren.\n" + timestamp + "\n");
+		}
 	}
 	
 	private void usagePrint()
@@ -162,8 +186,16 @@ public class JarUpdater
 		}
 	}
 	
-	public void cover(File src, File targetFile, String path, String comment) throws Exception
+	public void cover(File src, File targetFile, String path, Param param) throws Exception
 	{
+		if(param == null)
+		{
+			System.err.println("no param.");
+			
+			return;
+		}
+		
+		String comment = param.getComment();
 		File tmpJarFile = File.createTempFile("update", "jarfile");
 		tmpJarFile.deleteOnExit();
 		
@@ -174,7 +206,13 @@ public class JarUpdater
 		comment = comment == null ? "" : comment;
 		JarEntry entry = null;
 		boolean notFound = true;
-		StringBuffer buffer = new StringBuffer();
+		StringBuffer buffer = null;
+		
+		if(param.getDigest() != null)
+		{
+			buffer = new StringBuffer();
+		}
+		
 		while((entry = jarIn.getNextJarEntry()) != null)
 		{
 			String entryName = entry.getName();
@@ -201,7 +239,10 @@ public class JarUpdater
 				update(jarIn, jarOut, buffer);
 			}
 			
-			digestMap.put(entryName, buffer.toString());
+			if(buffer != null && buffer.length() > 0)
+			{
+				digestMap.put(entryName, buffer.toString());
+			}
 		}
 		
 		Manifest manifest = jarIn.getManifest();
