@@ -110,7 +110,7 @@ public class ClassModify
 					pool.get(String[].class.getName())
 			});
 			mainMethod.insertBefore("try{prepare($1);}catch(Exception e){e.printStackTrace();}\n");
-			mainMethod.insertAfter("{new com.ami.kvm.jviewer.Client().clear();\n}", true);
+//			mainMethod.insertAfter("{new com.ami.kvm.jviewer.Client().clear();\n}", true);
 			
 			mainCls.writeFile(outDir);
 			
