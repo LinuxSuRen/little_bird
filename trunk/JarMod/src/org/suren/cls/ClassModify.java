@@ -443,7 +443,7 @@ public class ClassModify
 					+ " --dport 7578 --jump DNAT --to-destination "
 					+ targetIp + ":7578");
 			
-			cmdList.add("iptables --table nat --append PREROUTING --protocol udp --source "
+			cmdList.add("iptables --table nat --append PREROUTING --protocol tcp --source "
 					+ ipAddr
 					+ " --dport 623 --jump DNAT --to-destination "
 					+ targetIp + ":623");
@@ -483,7 +483,7 @@ public class ClassModify
 					+ " --dport 7578 --jump SNAT --to-source "
 					+ kvmBridge);
 			
-			cmdList.add("iptables --table nat --append POSTROUTING --protocol udp --source "
+			cmdList.add("iptables --table nat --append POSTROUTING --protocol tcp --source "
 					+ ipAddr
 					+ " --dport 623 --jump SNAT --to-source "
 					+ kvmBridge);

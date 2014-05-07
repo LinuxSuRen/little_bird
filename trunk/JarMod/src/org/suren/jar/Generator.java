@@ -40,6 +40,7 @@ public class Generator
 {
 	private final String ALG_RSA = "RSA";
 
+	@SuppressWarnings("resource")
 	public int metaHash(String path)
 	{
 		JarFile jarFile = null;
