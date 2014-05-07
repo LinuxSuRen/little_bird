@@ -124,8 +124,8 @@ public class JarUpdater
 			
 			param.setOutDir(paramArray[0]);
 			param.setTargetJar(paramArray[1]);
-			param.setDigest(paramArray[2]);
-			param.setComment(paramArray[3]);
+			param.setComment(paramArray[2]);
+			param.setDigest(paramArray[3]);
 			param.setMainCls(paramArray[4]);
 		}
 		
@@ -141,12 +141,19 @@ public class JarUpdater
 			return;
 		}
 		
-		if(param.getComment() == null)
+		String timestamp = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss").format(new Date());
+		
+		StringBuffer commentBuffer = new StringBuffer();
+		commentBuffer.append("auto modify by suren.\n");
+		commentBuffer.append(timestamp).append("\n");
+		commentBuffer.append("client v2.0.1399271108710").append("\n");
+		
+		if(param.getComment() != null)
 		{
-			String timestamp = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss").format(new Date());
-			
-			param.setComment("auto modify by suren.\n" + timestamp + "\n");
+			commentBuffer.append(param.getComment()).append("\n");
 		}
+		
+		param.setComment(commentBuffer.toString());
 	}
 	
 	private void usagePrint()
@@ -208,7 +215,7 @@ public class JarUpdater
 		boolean notFound = true;
 		StringBuffer buffer = null;
 		
-		if(param.getDigest() != null)
+		if("digest".equals(param.getDigest()))
 		{
 			buffer = new StringBuffer();
 		}
