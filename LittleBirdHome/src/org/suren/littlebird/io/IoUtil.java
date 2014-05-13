@@ -25,4 +25,17 @@ public class IoUtil
 		
 		return false;
 	}
+	
+	public static void closeIos(Closeable ... closeables)
+	{
+		if(closeables == null)
+		{
+			return;
+		}
+		
+		for(Closeable closeable : closeables)
+		{
+			IoUtil.closeIo(closeable);
+		}
+	}
 }

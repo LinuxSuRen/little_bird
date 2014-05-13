@@ -12,6 +12,9 @@ public class OsgiMgrSetting
 {
 	private String host;
 	private int port;
+	private int sshPort;
+	private String sshUser;
+	private String sshPwd;
 	private String path;
 	private Set<String> historyPath;
 	private Set<String> historyUrl;
@@ -33,6 +36,33 @@ public class OsgiMgrSetting
 	public void setPort(int port)
 	{
 		this.port = port;
+	}
+	@XmlElement
+	public int getSshPort()
+	{
+		return sshPort;
+	}
+	public void setSshPort(int sshPort)
+	{
+		this.sshPort = sshPort;
+	}
+	@XmlElement
+	public String getSshUser()
+	{
+		return sshUser;
+	}
+	public void setSshUser(String sshUser)
+	{
+		this.sshUser = sshUser;
+	}
+	@XmlElement
+	public String getSshPwd()
+	{
+		return sshPwd;
+	}
+	public void setSshPwd(String sshPwd)
+	{
+		this.sshPwd = sshPwd;
 	}
 	@XmlElement
 	public String getPath()

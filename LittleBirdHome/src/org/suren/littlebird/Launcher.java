@@ -1,5 +1,9 @@
 package org.suren.littlebird;
 
+import java.awt.Color;
+import java.awt.Graphics2D;
+import java.awt.SplashScreen;
+import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.rmi.RemoteException;
 
@@ -35,6 +39,7 @@ public class Launcher
 	public static void main(String[] args) throws MalformedObjectNameException, NullPointerException, InstanceAlreadyExistsException, MBeanRegistrationException, NotCompliantMBeanException, RemoteException
 	{
 		Launcher launcher = new Launcher();
+		launcher.splash();
 		launcher.init();
 		
 		MainFrame main = MainFrame.getInstance();
@@ -49,6 +54,24 @@ public class Launcher
 		TestHello test = new TestHello();
 		mBeanServer.registerMBean(test, objectName);
 		mBeanServer.registerMBean(new DyMBeanTest(), new ObjectName("org.suren.littlebird:type=DyMBeanTest"));
+	}
+
+	private void splash()
+	{
+		new Thread("launcher splash"){
+
+			@Override
+			public void run()
+			{
+				SplashScreen splashScreen = SplashScreen.getSplashScreen();
+				Graphics2D g = splashScreen.createGraphics();
+				
+				g.setColor(Color.RED);
+				g.drawString("hello suren", 100, 100);
+				
+				splashScreen.update();
+			}
+		}.start();
 	}
 
 	private void init()

@@ -27,7 +27,7 @@ public class ResourceLoader
 {
 	private ExecutorService service = Executors.newCachedThreadPool();
 	private ArrayBlockingQueue<Class<?>> classQueue =
-			new ArrayBlockingQueue<Class<?>>(100);
+			new ArrayBlockingQueue<Class<?>>(800);
 	private AtomicReference<HashMap<Class<?>, ArrayList<Class<?>>>> result =
 			new AtomicReference<HashMap<Class<?>, ArrayList<Class<?>>>>(null);
 	private static AtomicReference<ResourceLoader> loaderRef =
@@ -56,6 +56,8 @@ public class ResourceLoader
 		return loader;
 	}
 	
+	Class<?>[] annos;
+	
 	public void discover(final Class<?> ... annos)
 	{
 		if(annos == null || annos.length == 0)
@@ -63,74 +65,80 @@ public class ResourceLoader
 			return;
 		}
 		
+		this.annos = annos;
 		String name = this.getClass().getPackage().getName();
 		prefix = name.replace(".", "/");
 		logger.debug("discover begin. prefix : " + prefix);
 		
 		result.set(new HashMap<Class<?>, ArrayList<Class<?>>>()); 
 		
-		service.submit(findClassTask);
-		service.submit(new Runnable()
-		{
-			@Override
-			public void run()
-			{
-				appender.addFilter(this.getClass().getName());
-				
-				while(true)
-				{
-					logger.debug("done : " + done.get() + "; size : " + classQueue.size());
-					
-					synchronized (service)
-					{
-						if(done.get() && classQueue.size() == 0)
-						{
-							break;
-						}
-					}
-					
-					Class<?> cls = null;
-					try
-					{
-						cls = classQueue.poll(4000, TimeUnit.MILLISECONDS);
-					}
-					catch (InterruptedException e)
-					{
-						e.printStackTrace();
-					}
-					
-					if(cls == null)
-					{
-						continue;
-					}
-					
-					for(Class anno : annos)
-					{
-						Object obj = cls.getAnnotation(anno);
-						
-						if(obj == null)
-						{
-							continue;
-						}
-						
-						ArrayList<Class<?>> list = result.get().get(anno);
-						if(list == null)
-						{
-							list = new ArrayList<Class<?>>();
-							
-							result.get().put(anno, list);
-						}
-						
-						list.add(cls);
-						logger.debug("discover annotation : " + obj);
-						
-						break;
-					}
-				}
-				
-				logger.info("discover annotation done.");
-			}
-		});
+		findClassTask.run();
+		findAnnotationTask.run();
+		
+//		service.submit(findClassTask);
+//		service.submit(new Runnable()
+//		{
+//			@Override
+//			public void run()
+//			{
+//				appender.addFilter(this.getClass().getName());
+//				
+//				while(!isFinished())
+//				{
+//					int size = classQueue.size();
+//					logger.debug("done : " + done.get() + "; size : " + size);
+//					
+////					synchronized (service)
+////					{
+////						if(isFinished())
+////						{
+////							break;
+////						}
+////					}
+//					
+//					Class<?> cls = null;
+//					try
+//					{
+//						cls = classQueue.poll(1000, TimeUnit.MILLISECONDS);
+//					}
+//					catch (InterruptedException e)
+//					{
+//						e.printStackTrace();
+//						
+//						continue;
+//					}
+//					
+//					if(cls == null)
+//					{
+//						continue;
+//					}
+//					
+//					for(Class anno : annos)
+//					{
+//						Object obj = cls.getAnnotation(anno);
+//						if(obj == null)
+//						{
+//							continue;
+//						}
+//						
+//						ArrayList<Class<?>> list = result.get().get(anno);
+//						if(list == null)
+//						{
+//							list = new ArrayList<Class<?>>();
+//							
+//							result.get().put(anno, list);
+//						}
+//						
+//						list.add(cls);
+//						logger.debug("discover annotation : " + obj + "; size : " + list.size());
+//						
+//						break;
+//					}
+//				}
+//				
+//				logger.info("discover annotation done.");
+//			}
+//		});
 	}
 	
 	private Runnable findClassTask = new Runnable()
@@ -139,6 +147,7 @@ public class ResourceLoader
 		public void run()
 		{
 			appender.addFilter(this.getClass().getName());
+			ResourceLoader resourceLoader = getInstance();
 			
 			Enumeration<URL> res = null;
 			try
@@ -189,18 +198,85 @@ public class ResourceLoader
 			}
 			finally
 			{
-				synchronized (service)
+//				synchronized (service)
+//				{
+//				}
+				
+				synchronized (resourceLoader)
 				{
-					done.set(true);
+					resourceLoader.notifyAll();
+					
+					logger.debug("resourceLoader.notifyAll() " + done.get());
 				}
 				
-				synchronized (getInstance())
-				{
-					getInstance().notifyAll();
-				}
+				logger.debug("findClassTask done. size : " + classQueue.size());
 				
-				logger.debug("findClassTask done.");
+				done.set(true);
 			}
+		}
+	};
+	
+	private Runnable findAnnotationTask = new Runnable()
+	{
+		@Override
+		public void run()
+		{
+			appender.addFilter(this.getClass().getName());
+			
+			while(!isFinished())
+			{
+				int size = classQueue.size();
+				logger.debug("done : " + done.get() + "; size : " + size);
+				
+//				synchronized (service)
+//				{
+//					if(isFinished())
+//					{
+//						break;
+//					}
+//				}
+				
+				Class<?> cls = null;
+				try
+				{
+					cls = classQueue.poll(1000, TimeUnit.MILLISECONDS);
+				}
+				catch (InterruptedException e)
+				{
+					e.printStackTrace();
+					
+					continue;
+				}
+				
+				if(cls == null)
+				{
+					continue;
+				}
+				
+				for(Class anno : annos)
+				{
+					Object obj = cls.getAnnotation(anno);
+					if(obj == null)
+					{
+						continue;
+					}
+					
+					ArrayList<Class<?>> list = result.get().get(anno);
+					if(list == null)
+					{
+						list = new ArrayList<Class<?>>();
+						
+						result.get().put(anno, list);
+					}
+					
+					list.add(cls);
+					logger.debug("discover annotation : " + obj + "; size : " + list.size());
+					
+					break;
+				}
+			}
+			
+			logger.info("discover annotation done.");
 		}
 	};
 	
@@ -304,7 +380,22 @@ public class ResourceLoader
 				return false;
 			}
 			
-			classQueue.put(cls);
+			int times = 0;
+			while(!classQueue.offer(cls, 1000, TimeUnit.MILLISECONDS))
+			{
+				times++;
+				
+				logger.debug("try to offer cls to classQueue. size : " + classQueue.size());
+				
+				if(times >= 10)
+				{
+					logger.debug("try to offer cls to classQueue failure. cls : " + cls);
+					
+					return false;
+				}
+			}
+			
+			logger.debug("classQueue size : " + classQueue.size());
 			
 			return true;
 		}
@@ -320,7 +411,7 @@ public class ResourceLoader
 	
 	public boolean isFinished()
 	{
-		return done.get();
+		return (done.get() && classQueue.size() == 0);
 	}
 	
 	public List<Class<?>> getResult(Class<?> type)

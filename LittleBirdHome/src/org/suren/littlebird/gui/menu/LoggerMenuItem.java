@@ -1379,6 +1379,10 @@ public class LoggerMenuItem extends ArchMenu<LoggerMgrSetting>
 		SettingUtil<LoggerMgrSetting> settingUtil = new SettingUtil<LoggerMgrSetting>();
 		
 		LoggerMgrSetting data = settingUtil.load(path, LoggerMgrSetting.class);
+		if(data == null)
+		{
+			data = new LoggerMgrSetting();
+		}
 		
 		return data;
 	}

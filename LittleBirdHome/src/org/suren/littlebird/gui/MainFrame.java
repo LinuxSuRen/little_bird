@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicReference;
@@ -98,16 +99,20 @@ public class MainFrame extends JFrame
 			{
 				ResourceLoader loader = ResourceLoader.getInstance();
 				appender.addFilter(this.getClass().getName());
+				Random random = new Random();
 				
 				while(!loader.isFinished())
 				{
-					logger.info("loading...");
+					List<Class<?>> result = loader.getResult(Menu.class);
+					logger.info("loading..." + (result != null ? result.size() : null));
 					
 					synchronized (loader)
 					{
 						try
 						{
-							loader.wait(1000);
+							loader.wait(random.nextInt(2000));
+							
+							loader.notifyAll();
 						}
 						catch (InterruptedException e)
 						{
@@ -131,9 +136,18 @@ public class MainFrame extends JFrame
 				
 				JMenuBar menuBar = new JMenuBar();
 				Map<Class<?>, JMenuItem> menuMap = new HashMap<Class<?>, JMenuItem>();
+				int len = result.size();
+				int errorLimit = len * 3;
 				
-				for(int i = 0; i < result.size();)
+				for(int i = 0, j = 0; i < result.size(); j++)
 				{
+					if(j > errorLimit)
+					{
+						logger.error("build menu failure.");
+						
+						break;
+					}
+						
 					if(menuMap.get(result.get(i)) != null)
 					{
 						continue;
