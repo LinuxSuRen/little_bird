@@ -7,6 +7,7 @@ import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 import org.suren.littlebird.ResourceLoader;
 import org.suren.littlebird.annotation.Publish;
@@ -22,9 +23,25 @@ public class RmiServer implements ArchServer
 	{
 		ResourceLoader loader = ResourceLoader.getInstance();
 		appender.addFilter(this.getClass().getName());
+		Random random = new Random();
 		
 		while(!loader.isFinished())
 		{
+			System.out.println("============");
+			
+			synchronized (loader)
+			{
+				try
+				{
+					loader.wait(random.nextInt(2000));
+					
+					loader.notifyAll();
+				}
+				catch (InterruptedException e)
+				{
+					e.printStackTrace();
+				}
+			}
 		}
 		
 		List<Class<?>> result = loader.getResult(Publish.class);

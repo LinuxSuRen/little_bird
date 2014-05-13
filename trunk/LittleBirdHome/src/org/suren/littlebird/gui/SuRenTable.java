@@ -1,5 +1,6 @@
 package org.suren.littlebird.gui;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Vector;
@@ -116,5 +117,34 @@ public class SuRenTable extends JTable
 	public void addData(String key, Object value)
 	{
 		data.put(key, value);
+	}
+	
+	public void rowsSelect(int[] rows)
+	{
+		if(rows != null && rows.length > 0)
+		{
+			Arrays.sort(rows);
+			int size = rows.length;
+			int index = 0;
+			int firstRow = rows[0];
+			int lastRow = firstRow;
+			
+			for(; index < size; index++)
+			{
+				if(lastRow + 1 == rows[index])
+				{
+					lastRow++;
+				}
+				else
+				{
+					setRowSelectionInterval(firstRow, lastRow);
+					
+					firstRow = rows[index];
+					lastRow = firstRow;
+				}
+			}
+			
+			setRowSelectionInterval(firstRow, lastRow);
+		}
 	}
 }

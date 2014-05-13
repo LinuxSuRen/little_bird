@@ -1,5 +1,6 @@
 package org.suren.littlebird.setting;
 
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -131,6 +132,15 @@ public class LoggerMgrSetting
 	@XmlElement(name = "agent")
 	public Set<String> getAgentType()
 	{
+		if(agentType == null || agentType.size() == 0)
+		{
+			Set<String> agentType = new HashSet<String>();
+			agentType.add("jmx");
+			agentType.add("webservice");
+			
+			setAgentType(agentType);
+		}
+		
 		return agentType;
 	}
 	public void setAgentType(Set<String> agentType)
