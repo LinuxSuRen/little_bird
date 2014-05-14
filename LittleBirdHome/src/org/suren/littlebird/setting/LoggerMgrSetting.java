@@ -8,16 +8,18 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 
+import org.suren.littlebird.util.CommonConstant;
+
 @XmlRootElement
 public class LoggerMgrSetting
 {
 	private String host;
-	private int port;
-	private int bridgePort;
+	private int port = CommonConstant.OSGI_SERVER;
+	private int bridgePort = 6789;
 	private boolean lineWrap;
 	private int backColor;
 	private int foreColor;
-	private int consoleBuffer;
+	private int consoleBuffer = CommonConstant.OUTPUT_BUF;
 	private String logLayout;
 	private Set<String> historyKeyword;
 	private String agent;

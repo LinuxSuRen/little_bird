@@ -7,14 +7,17 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 
+import org.suren.littlebird.util.CommonConstant;
+
 @XmlRootElement
 public class OsgiMgrSetting
 {
 	private String host;
-	private int port;
-	private int sshPort;
+	private int port = CommonConstant.OSGI_SERVER;
+	private int sshPort = CommonConstant.SSH_PORT;
 	private String sshUser;
 	private String sshPwd;
+	private int outputBuffer = CommonConstant.OUTPUT_BUF;
 	private String path;
 	private Set<String> historyPath;
 	private Set<String> historyUrl;
@@ -63,6 +66,14 @@ public class OsgiMgrSetting
 	public void setSshPwd(String sshPwd)
 	{
 		this.sshPwd = sshPwd;
+	}
+	public int getOutputBuffer()
+	{
+		return outputBuffer;
+	}
+	public void setOutputBuffer(int outputBuffer)
+	{
+		this.outputBuffer = outputBuffer;
 	}
 	@XmlElement
 	public String getPath()
