@@ -59,12 +59,15 @@ import org.suren.littlebird.gui.SuRenTable;
 import org.suren.littlebird.gui.SuRenTableModel;
 import org.suren.littlebird.gui.log.JTextAreaAppender;
 import org.suren.littlebird.io.IoUtil;
+import org.suren.littlebird.net.ssh.JSchConnection;
 import org.suren.littlebird.net.ssh.SimpleUserInfo;
 import org.suren.littlebird.po.SuRenBundle;
 import org.suren.littlebird.server.BundleServer;
 import org.suren.littlebird.setting.OsgiMgrSetting;
 import org.suren.littlebird.setting.SettingUtil;
+import org.suren.littlebird.util.NumberParser;
 
+import com.jcraft.jsch.Channel;
 import com.jcraft.jsch.ChannelExec;
 import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.JSchException;
@@ -346,7 +349,7 @@ public class OsgiMenuItem extends ArchMenu<OsgiMgrSetting>
 	{
 		final JToolBar settingBar = new JToolBar();
 		GridLayout gridLayout = new GridLayout();
-		gridLayout.setRows(3);
+		gridLayout.setRows(4);
 		settingBar.setVisible(false);
 		settingBar.setLayout(gridLayout);
 
@@ -355,6 +358,7 @@ public class OsgiMenuItem extends ArchMenu<OsgiMgrSetting>
 		final JTextField sshUserField = new JTextField();
 		final JTextField sshPwdField = new JTextField();
 		final JTextField sshPortField = new JTextField();
+		final JTextField outputBufField = new JTextField();
 		JButton saveBut = new JButton("save");
 		
 		urlField.setEditable(true);
@@ -370,6 +374,8 @@ public class OsgiMenuItem extends ArchMenu<OsgiMgrSetting>
 		settingBar.add(sshPwdField);
 		settingBar.add(new JLabel("SshPort"));
 		settingBar.add(sshPortField);
+		settingBar.add(new JLabel("OutputBuffer"));
+		settingBar.add(outputBufField);
 		settingBar.add(saveBut);
 		
 		OsgiMgrSetting data = loadCfg();
@@ -397,6 +403,7 @@ public class OsgiMenuItem extends ArchMenu<OsgiMgrSetting>
 			sshUserField.setText(data.getSshUser());
 			sshPwdField.setText(data.getSshPwd());
 			sshPortField.setText(String.valueOf(data.getSshPort()));
+			outputBufField.setText(String.valueOf(data.getOutputBuffer()));
 		}
 		
 		saveBut.addActionListener(new ActionListener()
@@ -413,26 +420,12 @@ public class OsgiMenuItem extends ArchMenu<OsgiMgrSetting>
 				
 				String url = item.toString();
 				String strPort = portField.getText();
-				int sshPort = -1;
-				int port = -1;
+				int sshPort = NumberParser.parseTo(sshPortField, -1);
+				int port = NumberParser.parseTo(strPort, -1);
+				int outputBuf = NumberParser.parseTo(outputBufField, -1);
 				
-				try
-				{
-					port = Integer.parseInt(strPort);
-				}
-				catch(NumberFormatException exc)
-				{
-				}
-				
-				try
-				{
-					sshPort = Integer.parseInt(sshPortField.getText());
-				}
-				catch(NumberFormatException exc)
-				{
-				}
-				
-				if(url.equals("") || port <= 0 || port >= 65536)
+				if(url.equals("") || port <= 0 || port >= 65536
+						|| outputBuf == -1)
 				{
 					return;
 				}
@@ -442,6 +435,7 @@ public class OsgiMenuItem extends ArchMenu<OsgiMgrSetting>
 				setting.setSshUser(sshUserField.getText());
 				setting.setSshPassword(sshPwdField.getText());
 				setting.setSshPort(sshPort);
+				setting.setOutputBuf(outputBuf);
 				
 				settingBar.setVisible(false);
 				
@@ -467,6 +461,7 @@ public class OsgiMenuItem extends ArchMenu<OsgiMgrSetting>
 				osgiSetting.setSshUser(setting.getSshUser());
 				osgiSetting.setSshPwd(setting.getSshPassword());
 				osgiSetting.setSshPort(setting.getSshPort());
+				osgiSetting.setOutputBuffer(setting.getOutputBuf());
 				
 				boolean result = saveCfg(osgiSetting);
 				if(result)
@@ -645,10 +640,20 @@ public class OsgiMenuItem extends ArchMenu<OsgiMgrSetting>
 		JTextArea outputArea = new JTextArea();
 		JScrollPane outputScroll = new JScrollPane(outputArea);
 		JTextField cmdField = new JTextField();
+		final JButton killBut = new JButton("Kill");
+		final JSchConnection connection = new JSchConnection();
 		
 		cmdBar.add(outputScroll, BorderLayout.CENTER);
-		cmdBar.add(cmdField, BorderLayout.SOUTH);
 		
+		JPanel cmdPanel = new JPanel();
+		cmdPanel.setLayout(new BorderLayout());
+		cmdPanel.add(cmdField, BorderLayout.CENTER);
+		cmdPanel.add(killBut, BorderLayout.EAST);
+		
+		cmdBar.add(cmdPanel, BorderLayout.SOUTH);
+		
+		killBut.setEnabled(false);
+		outputArea.setEditable(false);
 		outputArea.setRows(10);
 		
 		final JTextAreaAppender areaAppender = new JTextAreaAppender();
@@ -658,7 +663,7 @@ public class OsgiMenuItem extends ArchMenu<OsgiMgrSetting>
 		{
 			
 			@Override
-			public void actionPerformed(ActionEvent e)
+			public void actionPerformed(final ActionEvent e)
 			{
 				Object source = e.getSource();
 				if(!(source instanceof JTextField))
@@ -666,20 +671,42 @@ public class OsgiMenuItem extends ArchMenu<OsgiMgrSetting>
 					return;
 				}
 				
-				JTextField cmdField = (JTextField) source;
+				final JTextField cmdField = (JTextField) source;
 				cmdField.setEnabled(false);
+				killBut.setEnabled(true);
 				
-				try
+				new Thread()
 				{
-					String cmd = e.getActionCommand();
-					
-					String result = executeCmd(cmd);
-					
-					areaAppender.append(result);
-				}
-				finally
+
+					@Override
+					public void run()
+					{
+						try
+						{
+							String cmd = e.getActionCommand();
+							
+							executeCmd(cmd, connection, areaAppender);
+						}
+						finally
+						{
+							cmdField.setEnabled(true);
+							killBut.setEnabled(false);
+						}
+					}
+				}.start();
+			}
+		});
+		
+		killBut.addActionListener(new ActionListener()
+		{
+			
+			@Override
+			public void actionPerformed(ActionEvent e)
+			{
+				Channel channel = connection.getChannel();
+				if(channel != null)
 				{
-					cmdField.setEnabled(true);
+					channel.disconnect();
 				}
 			}
 		});
@@ -734,7 +761,8 @@ public class OsgiMenuItem extends ArchMenu<OsgiMgrSetting>
 		return null;
 	}
 	
-	private String executeCmd(String cmd)
+	private String executeCmd(String cmd, JSchConnection connection,
+			JTextAreaAppender areaAppender)
 	{
 		StringBuffer buffer = new StringBuffer();
 		if(cmd == null || "".equals(cmd))
@@ -742,6 +770,7 @@ public class OsgiMenuItem extends ArchMenu<OsgiMgrSetting>
 			return buffer.toString();
 		}
 		
+		long beginTime = System.currentTimeMillis();
 		OsgiMgrSetting cfg = loadCfg();
 		
 		String pwd = cfg.getSshPwd();
@@ -757,6 +786,11 @@ public class OsgiMenuItem extends ArchMenu<OsgiMgrSetting>
 			System.err.println("open session error.");
 			
 			return buffer.toString();
+		}
+		
+		if(connection != null)
+		{
+			connection.setChannel(shell);
 		}
 		
 		InputStream input = null;
@@ -784,7 +818,14 @@ public class OsgiMenuItem extends ArchMenu<OsgiMgrSetting>
 						break;
 					}
 					
-					buffer.append(new String(buf, 0, len));
+					String tmpBuf = new String(buf, 0, len);
+					
+					if(areaAppender != null)
+					{
+						areaAppender.append(tmpBuf);
+					}
+					
+					buffer.append(tmpBuf);
 				}
 				
 				if(shell.isClosed())
@@ -792,6 +833,8 @@ public class OsgiMenuItem extends ArchMenu<OsgiMgrSetting>
 					break;
 				}
 			}
+			
+			areaAppender.appendLine("--suren--");
 		}
 		catch (IOException e)
 		{
@@ -806,6 +849,9 @@ public class OsgiMenuItem extends ArchMenu<OsgiMgrSetting>
 			IoUtil.closeIo(input);
 			shell.disconnect();
 		}
+		
+		long endTime = System.currentTimeMillis();
+		updateStatus(endTime - beginTime, "ms");
 		
 		return buffer.toString();
 	}
@@ -1337,6 +1383,7 @@ public class OsgiMenuItem extends ArchMenu<OsgiMgrSetting>
 		private String sshUser;
 		private String sshPassword;
 		private int sshPort;
+		private int outputBuf;
 
 		public String getUrl()
 		{
@@ -1386,6 +1433,16 @@ public class OsgiMenuItem extends ArchMenu<OsgiMgrSetting>
 		public void setSshPort(int sshPort)
 		{
 			this.sshPort = sshPort;
+		}
+
+		public int getOutputBuf()
+		{
+			return outputBuf;
+		}
+
+		public void setOutputBuf(int outputBuf)
+		{
+			this.outputBuf = outputBuf;
 		}
 	}
 	

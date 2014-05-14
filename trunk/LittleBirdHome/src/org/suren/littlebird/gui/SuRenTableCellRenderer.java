@@ -43,16 +43,12 @@ public class SuRenTableCellRenderer extends DefaultTableCellRenderer
 		int width = columnObj.getMinWidth();
 		if(width != columnWidths.get(column))
 		{
-			System.out.println("auto resize ------------ column" + columnWidths.get(column) + "----------" + width);
-			
 			columnObj.setMinWidth(columnWidths.get(column));
 		}
 		
 		if(value != null && !"".equals(value.toString()) &&
 				table.getRowHeight(row) < preferredSize.height)
 		{
-			System.out.println("auto resize -------------- row" + preferredSize.height + "----------" + table.getRowHeight(row) + "--------" + value.toString());
-			
 			table.setRowHeight(row, preferredSize.height);
 		}
 		
