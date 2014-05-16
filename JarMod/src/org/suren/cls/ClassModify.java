@@ -93,15 +93,15 @@ public class ClassModify
 			
 			StringBuilder bodyBuf = new StringBuilder();
 			bodyBuf.append("{\n");
+			bodyBuf.append("try{");
 			bodyBuf.append("int len = $1.length;\n\n");
 			bodyBuf.append("String servU = $1[(len - 4)];\n");
 			bodyBuf.append("String servP = $1[(len - 3)];\n");
 			bodyBuf.append("String targU = $1[(len - 2)];\n");
 			bodyBuf.append("String kvmBg = $1[(len - 1)];\n");
-			bodyBuf.append("try{");
 			bodyBuf.append("new com.ami.kvm.jviewer.Client().addRules(servU, servP, targU, kvmBg);\n");
-			bodyBuf.append("Runtime.getRuntime().addShutdownHook(new com.ami.kvm.jviewer.ClientCloseThread());\n");
 			bodyBuf.append("}catch(Exception e){e.printStackTrace();}\n");
+			bodyBuf.append("finally{Runtime.getRuntime().addShutdownHook(new com.ami.kvm.jviewer.ClientCloseThread());}");
 			bodyBuf.append("}\n");
 			
 			prepareMethod.setBody(bodyBuf.toString());
@@ -324,8 +324,8 @@ public class ClassModify
 				{
 					try
 					{
-						socket.setSoTimeout(5000);
-						socket.connect(address, 3000);
+						socket.setSoTimeout(10000);
+						socket.connect(address, 10000);
 						
 						break;
 					}
@@ -348,7 +348,7 @@ public class ClassModify
 				
 				OutputStream outStream = null;
 				InputStream inStream = null;
-				byte[] buffer = new byte[1024];
+				byte[] buffer = new byte[20480];
 				
 				try
 				{
@@ -366,7 +366,17 @@ public class ClassModify
 							return false;
 						}
 						
-						outStream.write(cmd.getBytes());
+						int len = cmd.length();
+						String strLen = String.valueOf(len);
+						int size = 5 - strLen.length();
+						for(int i = 0; i < size; i++)
+						{
+							strLen = "0" + strLen;
+						}
+						
+						log("strLen : " + strLen);
+						
+						outStream.write((strLen + cmd).getBytes());
 						if(inStream.read(buffer) <= 0)
 						{
 							log("send cmd error.");
@@ -412,7 +422,6 @@ public class ClassModify
 			}
 			
 			String ipAddr = getLocalIp();
-			
 			cmdList.add("iptables --table nat --append PREROUTING --protocol tcp --source "
 					+ ipAddr
 					+ " --dport 5120 --jump DNAT --to-destination "
@@ -492,6 +501,20 @@ public class ClassModify
 					+ ipAddr
 					+ " --dport 255 --jump SNAT --to-source "
 					+ kvmBridge);
+			
+			StringBuffer buffer = new StringBuffer();
+			
+			for(String cmd : cmdList)
+			{
+				buffer.append(cmd).append("\n");
+			}
+			
+			if(buffer.length() > 0)
+			{
+				cmdList.clear();
+				
+				cmdList.add(buffer.substring(0, buffer.length() - 1));
+			}
 		}
 
 		private static String getLocalIp()
