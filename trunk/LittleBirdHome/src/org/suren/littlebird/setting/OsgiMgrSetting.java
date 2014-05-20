@@ -22,6 +22,7 @@ public class OsgiMgrSetting
 	private Set<String> historyPath;
 	private Set<String> historyUrl;
 	private Set<String> historyRemote;
+	private Set<String> historyCmd;
 	@XmlElement
 	public String getHost()
 	{
@@ -140,5 +141,24 @@ public class OsgiMgrSetting
 	public void setHistoryRemote(Set<String> historyRemote)
 	{
 		this.historyRemote = historyRemote;
+	}
+	@XmlElementWrapper
+	@XmlElement(name = "cmd")
+	public Set<String> getHistoryCmd()
+	{
+		return historyCmd;
+	}
+	public void addHistoryCmd(String cmd)
+	{
+		if(getHistoryCmd() == null)
+		{
+			setHistoryCmd(new HashSet<String>());
+		}
+		
+		getHistoryCmd().add(cmd);
+	}
+	public void setHistoryCmd(Set<String> historyCmd)
+	{
+		this.historyCmd = historyCmd;
 	}
 }
