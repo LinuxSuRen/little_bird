@@ -11,7 +11,7 @@ import java.util.Vector;
 import javax.swing.ComboBoxModel;
 import javax.swing.JComboBox;
 
-public class SuRenFilterBox<E> extends JComboBox<E> implements KeyListener
+public class SuRenFilterBox<E> extends JComboBox implements KeyListener
 {
 	private static final long	serialVersionUID	= 1L;
 	private List<E> sourceList = new ArrayList<E>();
@@ -23,7 +23,7 @@ public class SuRenFilterBox<E> extends JComboBox<E> implements KeyListener
 		filterListen();
 	}
 
-	public SuRenFilterBox(ComboBoxModel<E> aModel)
+	public SuRenFilterBox(ComboBoxModel aModel)
 	{
 		super(aModel);
 		
@@ -102,11 +102,11 @@ public class SuRenFilterBox<E> extends JComboBox<E> implements KeyListener
 			return;
 		}
 		
-		if(code == KeyEvent.VK_UP || code == KeyEvent.VK_DOWN)
+		if(!isWordCode(code))
 		{
 			return;
 		}
-
+		
 		filter = (".*" + filter + ".*");
 		
 		Set<E> tmpSet = new HashSet<E>();
@@ -126,13 +126,29 @@ public class SuRenFilterBox<E> extends JComboBox<E> implements KeyListener
 		this.removeAllItems();
 		
 		tmpSet.remove(selectedItem);
-		this.addItem((E) selectedItem);
+		this.addItem(selectedItem);
 		
 		for(E item : tmpSet)
 		{
 			this.addItem(item);
 		}
-		this.showPopup();
 		this.setSelectedItem(selectedItem);
+		
+		if(!this.isPopupVisible())
+		{
+			this.showPopup();
+		}
+	}
+	
+	private boolean isWordCode(int code)
+	{
+		if((code >= KeyEvent.VK_MINUS && code <= KeyEvent.VK_CLOSE_BRACKET))
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
 	}
 }

@@ -643,7 +643,7 @@ public class OsgiMenuItem extends ArchMenu<OsgiMgrSetting>
 		
 		JTextArea outputArea = new JTextArea();
 		JScrollPane outputScroll = new JScrollPane(outputArea);
-		JTextField cmdField = new JTextField();
+		SuRenFilterBox<Object> cmdField = new SuRenFilterBox<Object>();
 		final JButton killBut = new JButton("Kill");
 		final JSchConnection connection = new JSchConnection();
 		
@@ -662,6 +662,17 @@ public class OsgiMenuItem extends ArchMenu<OsgiMgrSetting>
 		
 		final JTextAreaAppender areaAppender = new JTextAreaAppender();
 		areaAppender.setTargetArea(outputArea);
+		
+		OsgiMgrSetting cmdSetting = loadCfg();
+		if(cmdSetting != null)
+		{
+			Set<String> historyCmd = cmdSetting.getHistoryCmd();
+			
+			if(historyCmd != null)
+			{
+				cmdField.setSource(Arrays.asList(historyCmd.toArray()));
+			}
+		}
 		
 		cmdField.addActionListener(new ActionListener()
 		{
