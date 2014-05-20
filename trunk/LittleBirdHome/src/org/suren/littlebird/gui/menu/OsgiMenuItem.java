@@ -55,6 +55,7 @@ import org.suren.littlebird.annotation.Menu.Action;
 import org.suren.littlebird.exception.SuRenSettingException;
 import org.suren.littlebird.gui.FocusAndSelectListener;
 import org.suren.littlebird.gui.MainFrame;
+import org.suren.littlebird.gui.SuRenFilterBox;
 import org.suren.littlebird.gui.SuRenTable;
 import org.suren.littlebird.gui.SuRenTableModel;
 import org.suren.littlebird.gui.log.JTextAreaAppender;
@@ -148,7 +149,7 @@ public class OsgiMenuItem extends ArchMenu<OsgiMgrSetting>
 		JButton installBut = new JButton("Install");
 		JButton uninstallBut = new JButton("Uninstall");
 		JButton cmdBut = new JButton("Cmd");
-		final JComboBox filterBox = new JComboBox();
+		final SuRenFilterBox<Object> filterBox = new SuRenFilterBox<Object>();
 		JButton settingBut = new JButton("Setting");
 		
 		reloadBut.setMnemonic('r');
@@ -186,6 +187,8 @@ public class OsgiMenuItem extends ArchMenu<OsgiMgrSetting>
 					filterBox.addItem(path);
 				}
 			}
+			
+			filterBox.setSource(Arrays.asList(hisPath.toArray()));
 			
 			filterBox.setSelectedItem(osgiCfg.getPath());
 		}
@@ -483,12 +486,11 @@ public class OsgiMenuItem extends ArchMenu<OsgiMgrSetting>
 		installBar.setVisible(false);
 
 		final JCheckBox remote = new JCheckBox("remote");
-		JComboBox pathBox = new JComboBox();
+		SuRenFilterBox<Object> pathBox = new SuRenFilterBox<Object>();
 		final DefaultListModel listModel = new DefaultListModel();
 		JList remotePathList = new JList(listModel);
 		remotePathList.setVisibleRowCount(5);
 		
-		pathBox.setEditable(true);
 		pathBox.setToolTipText("Ctrl+L");
 		pathBox.registerKeyboardAction(new FocusAndSelectListener(),
 				KeyStroke.getKeyStroke(KeyEvent.VK_L, KeyEvent.CTRL_DOWN_MASK),
@@ -505,6 +507,8 @@ public class OsgiMenuItem extends ArchMenu<OsgiMgrSetting>
 					pathBox.addItem(path);
 				}
 			}
+			
+			pathBox.setSource(Arrays.asList(hisPath.toArray()));
 		}
 		
 		remote.addItemListener(new ItemListener()
