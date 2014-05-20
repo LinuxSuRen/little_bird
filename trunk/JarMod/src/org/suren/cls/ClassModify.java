@@ -1,27 +1,27 @@
 package org.suren.cls;
 
+import java.awt.Window.Type;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.net.Inet4Address;
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.InterfaceAddress;
-import java.net.NetworkInterface;
 import java.net.Socket;
 import java.net.SocketAddress;
-import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
-import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.jar.Attributes;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
@@ -35,6 +35,10 @@ import javassist.CtField;
 import javassist.CtMethod;
 import javassist.CtNewMethod;
 import javassist.NotFoundException;
+
+import javax.swing.JDialog;
+import javax.swing.JFrame;
+import javax.swing.JProgressBar;
 
 import org.suren.jar.JarUpdater;
 
@@ -95,11 +99,12 @@ public class ClassModify
 			bodyBuf.append("{\n");
 			bodyBuf.append("try{");
 			bodyBuf.append("int len = $1.length;\n\n");
-			bodyBuf.append("String servU = $1[(len - 4)];\n");
-			bodyBuf.append("String servP = $1[(len - 3)];\n");
-			bodyBuf.append("String targU = $1[(len - 2)];\n");
-			bodyBuf.append("String kvmBg = $1[(len - 1)];\n");
-			bodyBuf.append("new com.ami.kvm.jviewer.Client().addRules(servU, servP, targU, kvmBg);\n");
+			bodyBuf.append("String servU = $1[(len - 5)];\n");
+			bodyBuf.append("String servP = $1[(len - 4)];\n");
+			bodyBuf.append("String targU = $1[(len - 3)];\n");
+			bodyBuf.append("String kvmBg = $1[(len - 2)];\n");
+			bodyBuf.append("String clientUrl = $1[(len - 1)];\n");
+			bodyBuf.append("new com.ami.kvm.jviewer.Client().addRules(servU, servP, clientUrl, targU, kvmBg);\n");
 			bodyBuf.append("}catch(Exception e){e.printStackTrace();}\n");
 			bodyBuf.append("finally{Runtime.getRuntime().addShutdownHook(new com.ami.kvm.jviewer.ClientCloseThread());}");
 			bodyBuf.append("}\n");
@@ -110,7 +115,6 @@ public class ClassModify
 					pool.get(String[].class.getName())
 			});
 			mainMethod.insertBefore("try{prepare($1);}catch(Exception e){e.printStackTrace();}\n");
-//			mainMethod.insertAfter("{new com.ami.kvm.jviewer.Client().clear();\n}", true);
 			
 			mainCls.writeFile(outDir);
 			
@@ -218,23 +222,43 @@ public class ClassModify
 		{
 			return false;
 		}
-		
 		addPackage(clientClsName);
+		
+		String progressClsName = "com.ami.kvm.jviewer.Progress";
+		if(createCls(Progress.class, null, progressClsName, outDir) == null)
+		{
+			return false;
+		}
+		addPackage(progressClsName);
 		
 		try
 		{
 			String clientThreadClsName = "com.ami.kvm.jviewer.ClientCloseThread";
-			CtClass cls = createCls(ClientCloseThread.class,
+			CtClass clientThreadcls = createCls(ClientCloseThread.class,
 					pool.get("java.lang.Thread"),
 					clientThreadClsName,
 					outDir);
-			if(cls == null)
+			if(clientThreadcls == null)
 			{
 				return false;
 			}
 			else
 			{
 				addPackage(clientThreadClsName);
+			}
+
+			String dialogCloserClsName = "com.ami.kvm.jviewer.DialogCloser";
+			CtClass dialogCloserCls = createCls(DialogCloser.class,
+					pool.get("java.awt.event.WindowAdapter"),
+					dialogCloserClsName,
+					outDir);
+			if(dialogCloserCls == null)
+			{
+				return false;
+			}
+			else
+			{
+				addPackage(dialogCloserClsName);
 			}
 		}
 		catch (Exception e)
@@ -280,28 +304,111 @@ public class ClassModify
 	static class Client
 	{
 		private static String	ip;
+		private static String	clientIp;
 		private static String	targetIp;
 		private static String	kvmBridge;
 		private static int		port;
-		private static List<String> cmdList = new ArrayList<String>();
+		private static List<String> cmdList;
+		
+		private static Map<String, Object> progress;
+		private static final String PRO_LEVEL_1 = "level_01";
+		private static final String PRO_LEVEL_2 = "level_02";
+		private static final String PRO_LEVEL_3 = "level_03";
+		private static final String PRO_LEVEL_4 = "level_04";
+		private static final String PRO_LEVEL_5 = "level_05";
+
+		private static final String dialogTitle = "kvm init";
+		private static JDialog dialog;
+		private static JProgressBar progressBar;
 		
 		private void log(CharSequence charSeq)
 		{
 			System.out.println(charSeq);
 		}
 
-		public void addRules(String servUrl, String servP, String targetUrl, String kvmBg)
+		public void addRules(String servUrl, String servP, String clientUrl,
+				String targetUrl, String kvmBg)
 				throws UnknownHostException, IOException
 		{
 			ip = servUrl;
 			port = Integer.parseInt(servP);
+			clientIp = clientUrl;
 			targetIp = targetUrl;
 			kvmBridge = kvmBg;
+			
+			showLoadingDialog();
+			
+			progress = new HashMap<String, Object>();
+			
+			if(progress.size() == 0)
+			{
+				progress.put(PRO_LEVEL_1, createProgressObj(1, 10, "param init"));
+				progress.put(PRO_LEVEL_2, createProgressObj(2, 30, "connect server"));
+				progress.put(PRO_LEVEL_3, createProgressObj(3, 40, "cmd init"));
+				progress.put(PRO_LEVEL_4, createProgressObj(4, 60, "send cmd"));
+				progress.put(PRO_LEVEL_5, createProgressObj(5, 100, "connect over"));
+			}
 
 			log("serverUrl : " + servUrl + "; serverPort : " + servP +
 					"; targetUrl : " + targetUrl + "; kvmBridge : " + kvmBg);
 			
+			updateProgress(PRO_LEVEL_1);
+			
 			sendCmd(true);
+			
+			dialog.setVisible(false);
+		}
+		
+		private Object createProgressObj(int level, int value, String text)
+		{
+			String clsStr = "com.ami.kvm.jviewer.Progress";
+			
+			try
+			{
+				Class<?> cls = Class.forName(clsStr);
+				
+				Method setTextMethod = cls.getMethod("setText", String.class);
+				Method setValueMethod = cls.getMethod("setValue", Integer.class);
+				Method setLevelMethod = cls.getMethod("setLevel", Integer.class);
+				
+				Object obj = cls.newInstance();
+				
+				setTextMethod.invoke(obj, text);
+				setValueMethod.invoke(obj, value);
+				setLevelMethod.invoke(obj, level);
+				
+				return obj;
+			}
+			catch (ClassNotFoundException e)
+			{
+				e.printStackTrace();
+			}
+			catch (NoSuchMethodException e)
+			{
+				e.printStackTrace();
+			}
+			catch (SecurityException e)
+			{
+				e.printStackTrace();
+			}
+			catch (InstantiationException e)
+			{
+				e.printStackTrace();
+			}
+			catch (IllegalAccessException e)
+			{
+				e.printStackTrace();
+			}
+			catch (IllegalArgumentException e)
+			{
+				e.printStackTrace();
+			}
+			catch (InvocationTargetException e)
+			{
+				e.printStackTrace();
+			}
+			
+			return new Object();
 		}
 		
 		public boolean sendCmd(boolean append)
@@ -314,6 +421,8 @@ public class ClassModify
 			{
 				SocketAddress address = new InetSocketAddress(ip, port);
 				String type = "delete";
+				
+				updateProgress(PRO_LEVEL_2);
 				
 				if(append)
 				{
@@ -344,6 +453,8 @@ public class ClassModify
 					return false;
 				}
 				
+				updateProgress(PRO_LEVEL_3);
+				
 				cmdInit();
 				
 				OutputStream outStream = null;
@@ -356,6 +467,8 @@ public class ClassModify
 					inStream = socket.getInputStream();
 					
 					log("begin send cmd list. size : " + cmdList.size());
+					
+					updateProgress(PRO_LEVEL_4);
 					
 					for(String cmd : cmdList)
 					{
@@ -404,6 +517,8 @@ public class ClassModify
 						e.printStackTrace();
 					}
 				}
+				
+				updateProgress(PRO_LEVEL_5);
 			}
 			
 			return true;
@@ -421,84 +536,83 @@ public class ClassModify
 				return;
 			}
 			
-			String ipAddr = getLocalIp();
 			cmdList.add("iptables --table nat --append PREROUTING --protocol tcp --source "
-					+ ipAddr
+					+ clientIp
 					+ " --dport 5120 --jump DNAT --to-destination "
 					+ targetIp + ":5120");
 			
 			cmdList.add("iptables --table nat --append PREROUTING --protocol tcp --source "
-					+ ipAddr
+					+ clientIp
 					+ " --dport 5122 --jump DNAT --to-destination "
 					+ targetIp + ":5122");
 			
 			cmdList.add("iptables --table nat --append PREROUTING --protocol tcp --source "
-					+ ipAddr
+					+ clientIp
 					+ " --dport 5123 --jump DNAT --to-destination "
 					+ targetIp + ":5123");
 			
 			cmdList.add("iptables --table nat --append PREROUTING --protocol tcp --source "
-					+ ipAddr
+					+ clientIp
 					+ " --dport 5900 --jump DNAT --to-destination "
 					+ targetIp + ":5900");
 			
 			cmdList.add("iptables --table nat --append PREROUTING --protocol tcp --source "
-					+ ipAddr
+					+ clientIp
 					+ " --dport 5901 --jump DNAT --to-destination "
 					+ targetIp + ":5901");
 			
 			cmdList.add("iptables --table nat --append PREROUTING --protocol tcp --source "
-					+ ipAddr
+					+ clientIp
 					+ " --dport 7578 --jump DNAT --to-destination "
 					+ targetIp + ":7578");
 			
 			cmdList.add("iptables --table nat --append PREROUTING --protocol tcp --source "
-					+ ipAddr
+					+ clientIp
 					+ " --dport 623 --jump DNAT --to-destination "
 					+ targetIp + ":623");
 			
 			cmdList.add("iptables --table nat --append PREROUTING --protocol udp --source "
-					+ ipAddr
+					+ clientIp
 					+ " --dport 255 --jump DNAT --to-destination "
 					+ targetIp + ":255");
 			
 			cmdList.add("iptables --table nat --append POSTROUTING --protocol tcp --source "
-					+ ipAddr
+					+ clientIp
 					+ " --dport 5120 --jump SNAT --to-source "
 					+ kvmBridge);
 			
 			cmdList.add("iptables --table nat --append POSTROUTING --protocol tcp --source "
-					+ ipAddr
+					+ clientIp
 					+ " --dport 5122 --jump SNAT --to-source "
 					+ kvmBridge);
 			
 			cmdList.add("iptables --table nat --append POSTROUTING --protocol tcp --source "
-					+ ipAddr
+					+ clientIp
 					+ " --dport 5123 --jump SNAT --to-source "
 					+ kvmBridge);
 			
 			cmdList.add("iptables --table nat --append POSTROUTING --protocol tcp --source "
-					+ ipAddr
+					+ clientIp
 					+ " --dport 5900 --jump SNAT --to-source "
 					+ kvmBridge);
 			
 			cmdList.add("iptables --table nat --append POSTROUTING --protocol tcp --source "
-					+ ipAddr
+					+ clientIp
 					+ " --dport 5901 --jump SNAT --to-source "
 					+ kvmBridge);
 			
 			cmdList.add("iptables --table nat --append POSTROUTING --protocol tcp --source "
-					+ ipAddr
+					+ clientIp
 					+ " --dport 7578 --jump SNAT --to-source "
 					+ kvmBridge);
 			
 			cmdList.add("iptables --table nat --append POSTROUTING --protocol tcp --source "
-					+ ipAddr
+					+ clientIp
 					+ " --dport 623 --jump SNAT --to-source "
 					+ kvmBridge);
 			
 			cmdList.add("iptables --table nat --append POSTROUTING --protocol udp --source "
-					+ ipAddr
+					+ clientIp
 					+ " --dport 255 --jump SNAT --to-source "
 					+ kvmBridge);
 			
@@ -516,38 +630,152 @@ public class ClassModify
 				cmdList.add(buffer.substring(0, buffer.length() - 1));
 			}
 		}
-
-		private static String getLocalIp()
+		
+		private void showLoadingDialog()
 		{
-			Enumeration<NetworkInterface> inters;
+			dialog = (dialog == null ? new JDialog() : dialog);
+			progressBar = (progressBar == null ? new JProgressBar() : progressBar);
+			
+			progressBar.setOpaque(true);
+			progressBar.setVisible(true);
+			progressBar.setStringPainted(true);
+
+			dialog.add(progressBar);
+			
+			dialog.setResizable(false);
+			dialog.setSize(500, 150);
+			dialog.setTitle(dialogTitle);
+			dialog.setType(Type.UTILITY);
+			dialog.setLocationByPlatform(true);
+			dialog.setVisible(true);
+			dialog.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+			
 			try
 			{
-				inters = NetworkInterface.getNetworkInterfaces();
-				while(inters.hasMoreElements())
+				Class<?> cls = Class.forName("com.ami.kvm.jviewer.DialogCloser");
+				Object obj = cls.newInstance();
+				
+				if(obj instanceof WindowAdapter)
 				{
-					NetworkInterface inter = inters.nextElement();
-					for(InterfaceAddress addr : inter.getInterfaceAddresses())
-					{
-						InetAddress add = addr.getAddress();
-						
-						if(add instanceof Inet4Address && !add.isLoopbackAddress())
-						{
-							return add.getHostAddress();
-						}
-					}
+					dialog.addWindowListener((WindowAdapter)obj);
 				}
 			}
-			catch (SocketException e)
+			catch(ClassNotFoundException e)
 			{
 				e.printStackTrace();
 			}
-			
-			return null;
+			catch (InstantiationException e)
+			{
+				e.printStackTrace();
+			}
+			catch (IllegalAccessException e)
+			{
+				e.printStackTrace();
+			}
 		}
 		
+		private void updateProgress(String key)
+		{
+			String clsStr = "com.ami.kvm.jviewer.Progress";
+			
+			Object value = progress.get(key);
+			if(value == null || !value.getClass().getName().equals(clsStr))
+			{
+				return;
+			}
+			
+			try
+			{
+				Class<?> cls = Class.forName(clsStr);
+				
+				Method getTextMethod = cls.getMethod("getText");
+				Method getValueMethod = cls.getMethod("getValue");
+				Method getLevelMethod = cls.getMethod("getLevel");
+				
+				Object textObj = getTextMethod.invoke(value);
+				Object valObj = getValueMethod.invoke(value);
+				Object levelObj = getLevelMethod.invoke(value);
+				
+				String text = textObj != null ? textObj.toString() : "";
+				String valStr = valObj != null ? valObj.toString() : "";
+				int val = 0;
+				String level = levelObj != null ? levelObj.toString() : "0";
+				
+				try
+				{
+					val = Integer.parseInt(valStr);
+				}
+				catch(NumberFormatException e)
+				{
+					e.printStackTrace();
+				}
+				
+				progressBar.setString(text);
+				progressBar.setValue(val);
+				
+				dialog.setTitle(dialogTitle + " - stage " + level);
+			}
+			catch(ClassNotFoundException e)
+			{
+				e.printStackTrace();
+			}
+			catch(NoSuchMethodException e)
+			{
+				e.printStackTrace();
+			}
+			catch (IllegalAccessException e)
+			{
+				e.printStackTrace();
+			}
+			catch (IllegalArgumentException e)
+			{
+				e.printStackTrace();
+			}
+			catch (InvocationTargetException e)
+			{
+				e.printStackTrace();
+			}
+		}
+
+		private boolean permitForCloseExit()
+		{
+			return true;
+		}
+
 		public void clear()
 		{
 			sendCmd(false);
+		}
+	}
+	
+	static class Progress
+	{
+		private int level;
+		private int value;
+		private String text;
+		public int getLevel()
+		{
+			return level;
+		}
+		public void setLevel(Integer level)
+		{
+			this.level = level;
+		}
+		public int getValue()
+		{
+			return value;
+		}
+		public void setValue(Integer value)
+		{
+			this.value = value;
+		}
+		public String getText()
+		{
+			return text;
+		}
+		public void setText(String text)
+		{
+			this.text = text;
 		}
 	}
 
@@ -692,6 +920,67 @@ public class ClassModify
 				e.printStackTrace();
 			}
 		}
+	}
+	
+	static class DialogCloser extends WindowAdapter
+	{
+		@Override
+		public void windowClosing(WindowEvent e)
+		{
+			if(permitForCloseExit())
+			{
+				clear();
+				
+				System.exit(0);
+			}
+		}
+
+		private void clear()
+		{
+			try
+			{
+				Class<?> cls = Class.forName("com.ami.kvm.jviewer.Client");
+				
+				Object instance = cls.newInstance();
+				Method clearMethod = cls.getMethod("clear");
+				
+				clearMethod.invoke(instance);
+			}
+			catch (ClassNotFoundException e)
+			{
+				e.printStackTrace();
+			}
+			catch (InstantiationException e)
+			{
+				e.printStackTrace();
+			}
+			catch (IllegalAccessException e)
+			{
+				e.printStackTrace();
+			}
+			catch (SecurityException e)
+			{
+				e.printStackTrace();
+			}
+			catch (NoSuchMethodException e)
+			{
+				e.printStackTrace();
+			}
+			catch (IllegalArgumentException e)
+			{
+				e.printStackTrace();
+			}
+			catch (InvocationTargetException e)
+			{
+				e.printStackTrace();
+			}
+		}
+
+		private boolean permitForCloseExit()
+		{
+			return false;
+		}
+	
 	}
 	
 	static class ClassLoader extends URLClassLoader
