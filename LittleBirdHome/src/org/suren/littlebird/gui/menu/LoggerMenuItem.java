@@ -22,6 +22,7 @@ import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.Arrays;
 import java.util.Set;
 import java.util.Vector;
 
@@ -52,7 +53,7 @@ import org.suren.littlebird.annotation.Menu;
 import org.suren.littlebird.annotation.Menu.Action;
 import org.suren.littlebird.gui.FocusAndSelectListener;
 import org.suren.littlebird.gui.MainFrame;
-import org.suren.littlebird.gui.SuRenComboBox;
+import org.suren.littlebird.gui.SuRenFilterBox;
 import org.suren.littlebird.gui.SuRenStatusButton;
 import org.suren.littlebird.gui.SuRenTable;
 import org.suren.littlebird.gui.SuRenTableModel;
@@ -128,7 +129,7 @@ public class LoggerMenuItem extends ArchMenu<LoggerMgrSetting>
 
 		final JComboBox levelBox = new JComboBox();
 		JButton setLevelBut = new JButton("SetLevel");
-		final SuRenComboBox filterBox = new SuRenComboBox();
+		final SuRenFilterBox filterBox = new SuRenFilterBox();
 		final JButton reloadBut = new JButton("Reload");
 		JButton settingBut = new JButton("Setting");
 		final JTextField bridgeField = new JTextField(10);
@@ -183,6 +184,8 @@ public class LoggerMenuItem extends ArchMenu<LoggerMgrSetting>
 					filterBox.addItem(keyword);
 				}
 			}
+			
+			filterBox.setSource(Arrays.asList(hisKeyword.toArray()));
 		}
 		
 		setLevelBut.addActionListener(new ActionListener()
@@ -216,11 +219,11 @@ public class LoggerMenuItem extends ArchMenu<LoggerMgrSetting>
 				Object source = e.getSource();
 				String cmd = e.getActionCommand();
 				
-				if("comboBoxEdited".equals(cmd) && source instanceof SuRenComboBox)
+				if("comboBoxEdited".equals(cmd) && source instanceof SuRenFilterBox)
 				{
 					reloadBut.doClick();
 					
-					SuRenComboBox filter = (SuRenComboBox) source;
+					SuRenFilterBox<Object> filter = (SuRenFilterBox<Object>) source;
 					save(filter.getSelectedItem().toString());
 					
 					filter.addUniItem(filter.getSelectedItem());
