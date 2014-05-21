@@ -11,6 +11,7 @@ public class Param
 	private String digest;
 	private String mainCls;
 	private String comment;
+	private String jviewer;
 	
 	public String getOutDir()
 	{
@@ -51,5 +52,13 @@ public class Param
 	public void setComment(String comment)
 	{
 		this.comment = comment;
+	}
+	public String getJviewer()
+	{
+		return jviewer;
+	}
+	public void setJviewer(String jviewer)
+	{
+		this.jviewer = jviewer;
 	}
 }

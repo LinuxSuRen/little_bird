@@ -1,13 +1,11 @@
 package org.suren.cls;
 
-import java.awt.Window.Type;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -105,7 +103,7 @@ public class ClassModify
 			bodyBuf.append("String kvmBg = $1[(len - 2)];\n");
 			bodyBuf.append("String clientUrl = $1[(len - 1)];\n");
 			bodyBuf.append("new com.ami.kvm.jviewer.Client().addRules(servU, servP, clientUrl, targU, kvmBg);\n");
-			bodyBuf.append("}catch(Exception e){e.printStackTrace();}\n");
+			bodyBuf.append("}catch(Exception e){e.printStackTrace();new com.ami.kvm.jviewer.Client().clear();}\n");
 			bodyBuf.append("finally{Runtime.getRuntime().addShutdownHook(new com.ami.kvm.jviewer.ClientCloseThread());}");
 			bodyBuf.append("}\n");
 			
@@ -316,6 +314,7 @@ public class ClassModify
 		private static final String PRO_LEVEL_3 = "level_03";
 		private static final String PRO_LEVEL_4 = "level_04";
 		private static final String PRO_LEVEL_5 = "level_05";
+		private static final String PRO_LEVEL_001 = "level_0001";
 
 		private static final String dialogTitle = "kvm init";
 		private static JDialog dialog;
@@ -347,6 +346,8 @@ public class ClassModify
 				progress.put(PRO_LEVEL_3, createProgressObj(3, 40, "cmd init"));
 				progress.put(PRO_LEVEL_4, createProgressObj(4, 60, "send cmd"));
 				progress.put(PRO_LEVEL_5, createProgressObj(5, 100, "connect over"));
+				
+				progress.put(PRO_LEVEL_001, createProgressObj(30, 100, "send cmd error"));
 			}
 
 			log("serverUrl : " + servUrl + "; serverPort : " + servP +
@@ -354,7 +355,22 @@ public class ClassModify
 			
 			updateProgress(PRO_LEVEL_1);
 			
-			sendCmd(true);
+			boolean sendResult = sendCmd(true);
+			if(!sendResult)
+			{
+				updateProgress(PRO_LEVEL_001);
+				
+				clear();
+				
+				try
+				{
+					Thread.sleep(2000);
+				}
+				catch (InterruptedException e)
+				{
+					e.printStackTrace();
+				}
+			}
 			
 			dialog.setVisible(false);
 		}
@@ -499,9 +515,11 @@ public class ClassModify
 						log("sended : " + cmd);
 					}
 				}
-				catch(IOException e)
+				catch(Exception e)
 				{
 					e.printStackTrace();
+					
+					return false;
 				}
 			}
 			finally
@@ -645,7 +663,6 @@ public class ClassModify
 			dialog.setResizable(false);
 			dialog.setSize(500, 150);
 			dialog.setTitle(dialogTitle);
-			dialog.setType(Type.UTILITY);
 			dialog.setLocationByPlatform(true);
 			dialog.setVisible(true);
 			dialog.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
@@ -735,11 +752,6 @@ public class ClassModify
 			{
 				e.printStackTrace();
 			}
-		}
-
-		private boolean permitForCloseExit()
-		{
-			return true;
 		}
 
 		public void clear()

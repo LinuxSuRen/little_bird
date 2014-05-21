@@ -36,6 +36,8 @@ public class JarUpdater
 {
 	private MessageDigest messageDigest;
 	private Base64 base64 = new Base64();
+	
+	private static final String CMD = "cmd";
 
 	/**
 	 * @param args
@@ -55,7 +57,7 @@ public class JarUpdater
 		
 		boolean result = jarUpdater.modify(param);
 		
-		if(result)
+		if(result && !CMD.equals(param.getJviewer()))
 		{
 			System.out.println("success");
 		}
@@ -77,7 +79,7 @@ public class JarUpdater
 		int hashCode = new Generator().metaHash(targetJar);
 		File dstFile = backupTo(targetJar, hashCode);
 		
-		if(dstFile == null)
+		if(dstFile == null && !CMD.equals(param.getJviewer()))
 		{
 			System.err.println("jar file backup error.");
 			
@@ -85,7 +87,11 @@ public class JarUpdater
 		}
 		
 		boolean modifyClsRes = clsModify.modify(targetJar, mainCls, outDir);
-		System.out.println("modifyClsRes : " + modifyClsRes);
+		
+		if(!CMD.equals(param.getJviewer()))
+		{
+			System.out.println("modifyClsRes : " + modifyClsRes);
+		}
 		
 		if(modifyClsRes)
 		{
@@ -107,26 +113,38 @@ public class JarUpdater
 			}
 		}
 		
-		System.out.println("result file is : " + dstFile.getName());
+		if(!CMD.equals(param.getJviewer()))
+		{
+			System.out.println("result file is : " + dstFile.getName());
+		}
+		else
+		{
+			System.out.println(dstFile.getName());			
+		}
+		
+		param.setJviewer(dstFile.getAbsolutePath());
 		
 		return true;
 	}
 	
-	private Param paramParse(String[] args)
+	public Param paramParse(String[] args)
 	{
 		Param param = null;
 		
 		if(args != null && args.length >= 2)
 		{
-			String[] paramArray = Arrays.copyOf(args, 5);
+			String[] paramArray = Arrays.copyOf(args, 6);
 			
 			param = new Param();
 			
-			param.setOutDir(paramArray[0]);
-			param.setTargetJar(paramArray[1]);
-			param.setComment(paramArray[2]);
-			param.setDigest(paramArray[3]);
-			param.setMainCls(paramArray[4]);
+			int i = 0;
+			
+			param.setOutDir(paramArray[i++]);
+			param.setTargetJar(paramArray[i++]);
+			param.setJviewer(paramArray[i++]);
+			param.setComment(paramArray[i++]);
+			param.setDigest(paramArray[i++]);
+			param.setMainCls(paramArray[i++]);
 		}
 		
 		paramDef(param);
@@ -354,7 +372,7 @@ public class JarUpdater
 		update(inStream, outStream, null);
 	}
 	
-	private boolean copy(File src, File target)
+	public boolean copy(File src, File target)
 	{
 		if(src == null || target == null)
 		{
