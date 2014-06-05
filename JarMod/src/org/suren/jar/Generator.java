@@ -39,8 +39,8 @@ import org.apache.commons.codec.binary.Base64;
 public class Generator
 {
 	private final String ALG_RSA = "RSA";
+	public static final int INVALID_HASH = -1;
 
-	@SuppressWarnings("resource")
 	public int metaHash(String path)
 	{
 		JarFile jarFile = null;
@@ -58,48 +58,52 @@ public class Generator
 		{
 			e.printStackTrace();
 		}
-		
-		if(jarFile != null)
+		finally
 		{
-			JarEntry entry = null;
-			try
+			if(jarFile == null)
 			{
-				entry = jarFile.getJarEntry(JarFile.MANIFEST_NAME);
+				return INVALID_HASH;
 			}
-			catch (IllegalStateException e)
-			{
-				e.printStackTrace();
-			}
+		}
+		
+		JarEntry entry = null;
+		try
+		{
+			entry = jarFile.getJarEntry(JarFile.MANIFEST_NAME);
+		}
+		catch (IllegalStateException e)
+		{
+			e.printStackTrace();
+		}
+		
+		InputStream entryStream = null;
+		try
+		{
+			entryStream = jarFile.getInputStream(entry);
 			
-			InputStream entryStream = null;
-			try
-			{
-				entryStream = jarFile.getInputStream(entry);
-				
-				int len = -1;
-				byte[] b = new byte[1024];
+			int len = -1;
+			byte[] b = new byte[1024];
 
-				while ((len = entryStream.read(b)) != -1)
+			while ((len = entryStream.read(b)) != -1)
+			{
+				buffer.append(new String(b, 0, len));
+			}
+		}
+		catch (Exception e)
+		{
+			e.printStackTrace();
+		}
+		finally
+		{
+			if(entryStream != null)
+			{
+				try
 				{
-					buffer.append(new String(b, 0, len));
+					entryStream.close();
 				}
-			}
-			catch (Exception e)
-			{
-				e.printStackTrace();
-			}
-			finally
-			{
-				if(entryStream != null)
+				catch (IOException e)
 				{
-					try
-					{
-						entryStream.close();
-					}
-					catch (IOException e)
-					{
-						e.printStackTrace();
-					}
+					e.printStackTrace();
 				}
 			}
 		}
