@@ -364,7 +364,7 @@ public class ClassModify
 			boolean sendResult = sendCmd(true);
 			if(!sendResult)
 			{
-				updateProgress(PRO_LEVEL_001);
+//				updateProgress(PRO_LEVEL_001);
 
 				clear();
 
@@ -442,14 +442,9 @@ public class ClassModify
 			try
 			{
 				SocketAddress address = new InetSocketAddress(ip, port);
-				String type = "delete";
+				String type = "append";
 
 				updateProgress(PRO_LEVEL_2);
-
-				if(append)
-				{
-					type = "append";
-				}
 
 				for(int i = 0; i < 3; i++)
 				{
@@ -477,7 +472,7 @@ public class ClassModify
 
 				updateProgress(PRO_LEVEL_3);
 
-				cmdInit();
+				cmdInit(append);
 
 				OutputStream outStream = null;
 				InputStream inStream = null;
@@ -548,97 +543,94 @@ public class ClassModify
 			return true;
 		}
 
-		private void cmdInit()
+		private void cmdInit(boolean add)
 		{
-			if(cmdList == null)
-			{
-				cmdList = new ArrayList<String>();
-			}
+		      cmdList = new ArrayList();
+		      String type = "--delete";
+		      if (add)
+		      {
+		        type = "--insert";
+		      }
 
-			if(cmdList.size() > 0)
-			{
-				return;
-			}
+		      cmdList.add("iptables --table nat " + type + " PREROUTING --protocol tcp --source " +
+		        clientIp +
+		        " --dport 5120 --jump DNAT --to-destination " +
+		        targetIp + ":5120");
 
-			cmdList.add("iptables --table nat --append PREROUTING --protocol tcp --source "
-					+ clientIp
-					+ " --dport 5120 --jump DNAT --to-destination "
-					+ targetIp + ":5120");
+		      cmdList.add("iptables --table nat " + type + " PREROUTING --protocol tcp --source " +
+		        clientIp +
+		        " --dport 5122 --jump DNAT --to-destination " +
+		        targetIp + ":5122");
 
-			cmdList.add("iptables --table nat --append PREROUTING --protocol tcp --source "
-					+ clientIp
-					+ " --dport 5122 --jump DNAT --to-destination "
-					+ targetIp + ":5122");
+		      cmdList.add("iptables --table nat " + type + " PREROUTING --protocol tcp --source " +
+		        clientIp +
+		        " --dport 5123 --jump DNAT --to-destination " +
+		        targetIp + ":5123");
 
-			cmdList.add("iptables --table nat --append PREROUTING --protocol tcp --source "
-					+ clientIp
-					+ " --dport 5123 --jump DNAT --to-destination "
-					+ targetIp + ":5123");
+		      cmdList.add("iptables --table nat " + type + " PREROUTING --protocol tcp --source " +
+		        clientIp +
+		        " --dport 5900 --jump DNAT --to-destination " +
+		        targetIp + ":5900");
 
-			cmdList.add("iptables --table nat --append PREROUTING --protocol tcp --source "
-					+ clientIp
-					+ " --dport 5900 --jump DNAT --to-destination "
-					+ targetIp + ":5900");
+		      cmdList.add("iptables --table nat " + type + " PREROUTING --protocol tcp --source " +
+		        clientIp +
+		        " --dport 5901 --jump DNAT --to-destination " +
+		        targetIp + ":5901");
 
-			cmdList.add("iptables --table nat --append PREROUTING --protocol tcp --source "
-					+ clientIp
-					+ " --dport 5901 --jump DNAT --to-destination "
-					+ targetIp + ":5901");
+		      cmdList.add("iptables --table nat " + type + " PREROUTING --protocol tcp --source " +
+		        clientIp +
+		        " --dport 7578 --jump DNAT --to-destination " +
+		        targetIp + ":7578");
 
-			cmdList.add("iptables --table nat --append PREROUTING --protocol tcp --source "
-					+ clientIp
-					+ " --dport 7578 --jump DNAT --to-destination "
-					+ targetIp + ":7578");
+		      cmdList.add("iptables --table nat " + type + " PREROUTING --protocol tcp --source " +
+		        clientIp +
+		        " --dport 623 --jump DNAT --to-destination " +
+		        targetIp + ":623");
 
-			cmdList.add("iptables --table nat --append PREROUTING --protocol tcp --source "
-					+ clientIp
-					+ " --dport 623 --jump DNAT --to-destination "
-					+ targetIp + ":623");
+		      cmdList.add("iptables --table nat " + type + " PREROUTING --protocol udp --source " +
+		        clientIp +
+		        " --dport 255 --jump DNAT --to-destination " +
+		        targetIp + ":255");
 
-			cmdList.add("iptables --table nat --append PREROUTING --protocol udp --source "
-					+ clientIp
-					+ " --dport 255 --jump DNAT --to-destination "
-					+ targetIp + ":255");
+		      cmdList.add("iptables --table nat " + type + " POSTROUTING --protocol tcp --source " +
+		        clientIp +
+		        " --dport 5120 --jump SNAT --to-source " +
+		        kvmBridge);
 
-			cmdList.add("iptables --table nat --append POSTROUTING --protocol tcp --source "
-					+ clientIp
-					+ " --dport 5120 --jump SNAT --to-source "
-					+ kvmBridge);
+		      cmdList.add("iptables --table nat " + type + " POSTROUTING --protocol tcp --source " +
+		        clientIp +
+		        " --dport 5122 --jump SNAT --to-source " +
+		        kvmBridge);
 
-			cmdList.add("iptables --table nat --append POSTROUTING --protocol tcp --source "
-					+ clientIp
-					+ " --dport 5122 --jump SNAT --to-source "
-					+ kvmBridge);
+		      cmdList.add("iptables --table nat " + type + " POSTROUTING --protocol tcp --source " +
+		        clientIp +
+		        " --dport 5123 --jump SNAT --to-source " +
+		        kvmBridge);
 
-			cmdList.add("iptables --table nat --append POSTROUTING --protocol tcp --source "
-					+ clientIp
-					+ " --dport 5123 --jump SNAT --to-source "
-					+ kvmBridge);
+		      cmdList.add("iptables --table nat " + type + " POSTROUTING --protocol tcp --source " +
+		        clientIp +
+		        " --dport 5900 --jump SNAT --to-source " +
+		        kvmBridge);
 
-			cmdList.add("iptables --table nat --append POSTROUTING --protocol tcp --source "
-					+ clientIp
-					+ " --dport 5900 --jump SNAT --to-source "
-					+ kvmBridge);
+		      cmdList.add("iptables --table nat " + type + " POSTROUTING --protocol tcp --source " +
+		        clientIp +
+		        " --dport 5901 --jump SNAT --to-source " +
+		        kvmBridge);
 
-			cmdList.add("iptables --table nat --append POSTROUTING --protocol tcp --source "
-					+ clientIp
-					+ " --dport 5901 --jump SNAT --to-source "
-					+ kvmBridge);
+		      cmdList.add("iptables --table nat " + type + " POSTROUTING --protocol tcp --source " +
+		        clientIp +
+		        " --dport 7578 --jump SNAT --to-source " +
+		        kvmBridge);
 
-			cmdList.add("iptables --table nat --append POSTROUTING --protocol tcp --source "
-					+ clientIp
-					+ " --dport 7578 --jump SNAT --to-source "
-					+ kvmBridge);
+		      cmdList.add("iptables --table nat " + type + " POSTROUTING --protocol tcp --source " +
+		        clientIp +
+		        " --dport 623 --jump SNAT --to-source " +
+		        kvmBridge);
 
-			cmdList.add("iptables --table nat --append POSTROUTING --protocol tcp --source "
-					+ clientIp
-					+ " --dport 623 --jump SNAT --to-source "
-					+ kvmBridge);
-
-			cmdList.add("iptables --table nat --append POSTROUTING --protocol udp --source "
-					+ clientIp
-					+ " --dport 255 --jump SNAT --to-source "
-					+ kvmBridge);
+		      cmdList.add("iptables --table nat " + type + " POSTROUTING --protocol udp --source " +
+		        clientIp +
+		        " --dport 255 --jump SNAT --to-source " +
+		        kvmBridge);
 
 			StringBuffer buffer = new StringBuffer();
 
@@ -699,6 +691,11 @@ public class ClassModify
 
 		private void updateProgress(String key)
 		{
+			if(dialog == null || !dialog.isVisible())
+			{
+				return;
+			}
+
 			String clsStr = "com.ami.kvm.jviewer.Progress";
 
 			Object value = progress.get(key);
