@@ -186,9 +186,9 @@ public class OsgiMenuItem extends ArchMenu<OsgiMgrSetting>
 				{
 					filterBox.addItem(path);
 				}
+				
+				filterBox.setSource(Arrays.asList(hisPath.toArray()));
 			}
-			
-			filterBox.setSource(Arrays.asList(hisPath.toArray()));
 			
 			filterBox.setSelectedItem(osgiCfg.getPath());
 		}
@@ -506,9 +506,9 @@ public class OsgiMenuItem extends ArchMenu<OsgiMgrSetting>
 				{
 					pathBox.addItem(path);
 				}
+				
+				pathBox.setSource(Arrays.asList(hisPath.toArray()));
 			}
-			
-			pathBox.setSource(Arrays.asList(hisPath.toArray()));
 		}
 		
 		remote.addItemListener(new ItemListener()

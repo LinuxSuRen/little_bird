@@ -183,9 +183,9 @@ public class LoggerMenuItem extends ArchMenu<LoggerMgrSetting>
 				{
 					filterBox.addItem(keyword);
 				}
+				
+				filterBox.setSource(Arrays.asList(hisKeyword.toArray()));
 			}
-			
-			filterBox.setSource(Arrays.asList(hisKeyword.toArray()));
 		}
 		
 		setLevelBut.addActionListener(new ActionListener()
