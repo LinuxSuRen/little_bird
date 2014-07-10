@@ -72,17 +72,17 @@ public class ScpMenuItem extends ArchMenu<SshSetting>
 	private JPopupMenu localPopupMenu = null;
 	private JSch jsch = new JSch();
 	private List<Session> sesssionList = new ArrayList<Session>();
-	
+
 	private final String HEAD_PATH = "path";
 	private final String HEAD_SIZE = "size";
 	private final String HEAD_LEVEL = "level";
-	
+
 	private final String SSH_CFG_PATH = "ssh_cfg.xml";
-	
+
 	@Action
 	private ActionListener action = new ActionListener()
 	{
-		
+
 		@Override
 		public void actionPerformed(ActionEvent e)
 		{
@@ -91,12 +91,12 @@ public class ScpMenuItem extends ArchMenu<SshSetting>
 			{
 				panel = new JTabbedPane();
 				main.getContentPanel().add("Scp", panel);
-				
+
 				init();
 			}
-			
+
 			main.getContentLayout().show(main.getContentPanel(), "Scp");
-			
+
 			main.reDrawPanel();
 		}
 	};
@@ -107,11 +107,11 @@ public class ScpMenuItem extends ArchMenu<SshSetting>
 		{
 			return;
 		}
-		
+
 		tabPopuMenu = createTabMenu();
-		
+
 		addTab(new TabInfo());
-		
+
 		panel.addMouseListener(new MouseAdapter()
 		{
 
@@ -131,7 +131,7 @@ public class ScpMenuItem extends ArchMenu<SshSetting>
 						return;
 					}
 				}
-				
+
 				if(butCode == MouseEvent.BUTTON3)
 				{
 					tabPopuMenu(index, e.getX(), e.getY());
@@ -139,7 +139,7 @@ public class ScpMenuItem extends ArchMenu<SshSetting>
 			}
 		});
 	}
-	
+
 	private JPopupMenu createTabMenu()
 	{
 		final JPopupMenu menu = new JPopupMenu();
@@ -151,10 +151,10 @@ public class ScpMenuItem extends ArchMenu<SshSetting>
 		menu.add(saveItem);
 		menu.add(closeItem);
 		menu.add(duplicateItem);
-		
+
 		saveItem.addActionListener(new ActionListener()
 		{
-			
+
 			@Override
 			public void actionPerformed(ActionEvent e)
 			{
@@ -166,26 +166,26 @@ public class ScpMenuItem extends ArchMenu<SshSetting>
 				{
 					return;
 				}
-				
+
 				pane = (JTabbedPane) invoker;
 				selectedComponent = pane.getSelectedComponent();
 				if(!(selectedComponent instanceof GeneralPanel))
 				{
 					return;
 				}
-				
+
 				generalPanel = (GeneralPanel<TabInfo>) selectedComponent;
 				TabInfo data = generalPanel.getDataObject();
-				
+
 				if(data == null || data.getHost() == null || "".equals(data.getHost()))
 				{
 					return;
 				}
-				
+
 				SshSetting setting = loadCfg();
 				if(setting == null)
 				{
-					setting = new SshSetting(); 
+					setting = new SshSetting();
 				}
 				setting.setLastHost(data.getHost());
 
@@ -195,14 +195,14 @@ public class ScpMenuItem extends ArchMenu<SshSetting>
 				ssh.setPort(data.getPort());
 				ssh.setHost(data.getHost());
 				setting.addSsh(ssh);
-				
+
 				System.out.println(saveCfg(setting));
 			}
 		});
-		
+
 		duplicateItem.addActionListener(new ActionListener()
 		{
-			
+
 			@Override
 			public void actionPerformed(ActionEvent e)
 			{
@@ -214,20 +214,20 @@ public class ScpMenuItem extends ArchMenu<SshSetting>
 				{
 					return;
 				}
-				
+
 				pane = (JTabbedPane) invoker;
 				selectedComponent = pane.getSelectedComponent();
 				if(!(selectedComponent instanceof GeneralPanel))
 				{
 					return;
 				}
-				
+
 				generalPanel = (GeneralPanel<TabInfo>) selectedComponent;
-				
+
 				addTab(generalPanel.getDataObject());
 			}
 		});
-		
+
 		return menu;
 	}
 
@@ -242,7 +242,7 @@ public class ScpMenuItem extends ArchMenu<SshSetting>
 		{
 			return;
 		}
-		
+
 		GeneralPanel<TabInfo> innerPanel = new GeneralPanel<TabInfo>();
 		innerPanel.setDataObject(tabInfo);
 		innerPanel.setLayout(new BorderLayout());
@@ -250,13 +250,13 @@ public class ScpMenuItem extends ArchMenu<SshSetting>
 		innerPanel.add(createCenterZone(tabInfo), BorderLayout.CENTER);
 		innerPanel.add(createToolBar(tabInfo), BorderLayout.NORTH);
 		innerPanel.add(createLogPanel(tabInfo), BorderLayout.SOUTH);
-		
+
 		String title = tabInfo.getTitle();
 		if("".equals(title) || title == null)
 		{
 			title = "suren";
 		}
-		
+
 		panel.addTab(title, innerPanel);
 		panel.setSelectedComponent(innerPanel);
 	}
@@ -264,19 +264,19 @@ public class ScpMenuItem extends ArchMenu<SshSetting>
 	private JToolBar createToolBar(final TabInfo tabInfo)
 	{
 		final JToolBar toolBar = new JToolBar();
-		
+
 		final JButton syncBut = new JButton("sync");
 		final JTextField userField = new JTextField(tabInfo.getUser());
 		final JTextField hostField = new JTextField(tabInfo.getHost());
 		final JTextField portField = new JTextField(tabInfo.getPort() + "");
 		final JTextField pwdField = new JPasswordField(tabInfo.getPassword());
 		final ConnectButton conBut = new ConnectButton();
-		
+
 		conBut.setUser(userField);
 		conBut.setHost(hostField);
 		conBut.setPort(portField);
 		conBut.setPassword(pwdField);
-		
+
 		syncBut.setMnemonic('s');
 		conBut.setMnemonic('c');
 
@@ -286,10 +286,10 @@ public class ScpMenuItem extends ArchMenu<SshSetting>
 		toolBar.add(portField);
 		toolBar.add(pwdField);
 		toolBar.add(conBut);
-		
+
 		syncBut.addActionListener(new ActionListener()
 		{
-			
+
 			@Override
 			public void actionPerformed(ActionEvent e)
 			{
@@ -303,27 +303,27 @@ public class ScpMenuItem extends ArchMenu<SshSetting>
 						sync();
 						syncBut.setEnabled(true);
 					}
-					
+
 					private void sync()
 					{
 						TabInfo tabInfo = getData();
 						List<String> localFiles = tabInfo.getLocalFiles();
 						ChannelSftp ftp = tabInfo.getFtpChannel();
-						
+
 						if(localFiles == null || localFiles.size() == 0)
 						{
 							return;
 						}
-						
+
 						if(ftp.isClosed())
 						{
 							return;
 						}
-						
+
 						for(String path : localFiles)
 						{
 							File file = new File(path);
-							
+
 							try
 							{
 								ftp.put(path, file.getName(), tabInfo.getMonitor());
@@ -339,10 +339,10 @@ public class ScpMenuItem extends ArchMenu<SshSetting>
 				syncThread.start();
 			}
 		});
-		
+
 		conBut.addActionListener(new ActionListener()
 		{
-			
+
 			@Override
 			public void actionPerformed(ActionEvent e)
 			{
@@ -350,20 +350,20 @@ public class ScpMenuItem extends ArchMenu<SshSetting>
 				{
 					return;
 				}
-				
+
 				Object source = e.getSource();
 				if(!(source instanceof ConnectButton))
 				{
 					return;
 				}
-				
+
 				ConnectButton connect = (ConnectButton) source;
-				
+
 				String user = connect.getUser().getText();
 				String host = connect.getHost().getText();
 				String port = connect.getPort().getText();
 				String pwd = connect.getPassword().getText();
-				
+
 				Session session = openSession(user, host, port, pwd);
 				if(session != null && session.isConnected())
 				{
@@ -371,40 +371,40 @@ public class ScpMenuItem extends ArchMenu<SshSetting>
 					hostField.setEnabled(false);
 					portField.setEnabled(false);
 					pwdField.setEnabled(false);
-					
+
 					tabInfo.setSession(session);
 				}
 				else
 				{
 					return;
 				}
-				
+
 				if(tabInfo.getTitle() == null || "".equals(tabInfo.getTitle()))
 				{
 					tabInfo.setTitle(host);
 				}
-				
+
 				tabInfo.setUser(user);
 				tabInfo.setHost(host);
 				tabInfo.setPassword(pwd);
 				conBut.setConnected(true);
-				
+
 				panel.setTitleAt(panel.getSelectedIndex(), tabInfo.getTitle());
-				
+
 				try
 				{
 					ChannelSftp ftp = (ChannelSftp) session.openChannel("sftp");
-					
+
 					ftp.connect();
 					tabInfo.setFtpChannel(ftp);
-					
+
 					if(!"".equals(tabInfo.getPath()))
 					{
 						ftp.cd(tabInfo.getPath());
 					}
-					
+
 					connect.setData("channel", ftp);
-					
+
 					remoteFlush(tabInfo);
 				}
 				catch (Exception e1)
@@ -413,22 +413,22 @@ public class ScpMenuItem extends ArchMenu<SshSetting>
 				}
 			}
 		});
-		
+
 		return toolBar;
 	}
-	
+
 	private Component createLogPanel(TabInfo tabInfo)
 	{
 		JToolBar logBar = new JToolBar();
-		
+
 		JTextArea logArea = new JTextArea();
 		JScrollPane logScroll = new JScrollPane(logArea);
-		
+
 		logBar.add(logScroll);
-		
+
 		return logBar;
 	}
-	
+
 	protected void remoteFlush(TabInfo tabInfo)
 	{
 		ChannelSftp channel = null;
@@ -437,40 +437,40 @@ public class ScpMenuItem extends ArchMenu<SshSetting>
 		{
 			return;
 		}
-		
+
 		SuRenTable table = tabInfo.getRemoteTable();
 		TableModel tbModel = table.getModel();
 		if(tbModel instanceof DefaultTableModel)
 		{
 			DefaultTableModel model = (DefaultTableModel) tbModel;
 			int count = model.getRowCount();
-			
+
 			for(int i = 0; i < count; i++)
 			{
 				model.removeRow(0);
 			}
 		}
-		
+
 		try
 		{
 			Vector list = channel.ls(".");
-			
+
 			Collections.sort(list);
-			
+
 			for(int i = 0; i < list.size(); i++)
 			{
 				Object entry = list.get(i);
-				
+
 				if(!(entry instanceof LsEntry))
 				{
 					continue;
 				}
-				
+
 				LsEntry lsEntry = (LsEntry) entry;
-				
+
 				Vector<Object> data = new Vector<Object>();
 				data.add(lsEntry.getFilename());
-				
+
 				fillTable(table, data);
 			}
 		}
@@ -486,26 +486,26 @@ public class ScpMenuItem extends ArchMenu<SshSetting>
 		{
 			return;
 		}
-		
+
 		SuRenTableModel model = table.getModel();
 		for(Vector<Object> data : datas)
 		{
 			model.addRow(data);
 		}
 	}
-	
+
 	protected Session openSession(String user, String host, String port, String pwd)
 	{
 		Session session = null;
-		
+
 		try
 		{
 			int size = sesssionList.size();
-			
+
 			for(int i = 0; i < size; i++)
 			{
 				Session item = sesssionList.get(i);
-				
+
 				if(!item.isConnected())
 				{
 					sesssionList.remove(i);
@@ -513,23 +513,23 @@ public class ScpMenuItem extends ArchMenu<SshSetting>
 					size--;
 					continue;
 				}
-				
+
 				if(item.getHost().equals(host))
 				{
 					session = item;
-					
+
 					break;
 				}
 			}
-			
+
 			if(session == null)
 			{
 				session = jsch.getSession(user, host, 22);
-				
+
 				SimpleUserInfo userInfo = new SimpleUserInfo(panel);
 				userInfo.setPassword(pwd);
 				session.setUserInfo(userInfo);
-				
+
 				session.connect();
 			}
 		}
@@ -537,7 +537,7 @@ public class ScpMenuItem extends ArchMenu<SshSetting>
 		{
 			e.printStackTrace();
 		}
-		
+
 		return session;
 	}
 
@@ -546,7 +546,7 @@ public class ScpMenuItem extends ArchMenu<SshSetting>
 		JSplitPane pane = new JSplitPane();
 		pane.setOneTouchExpandable(true);
 		pane.setDividerLocation((int)((MainFrame.getInstance().getContentPanel().getWidth() - pane.getDividerSize()) * 0.5));
-		
+
 		SuRenTable localTable = new SuRenTable();
 		localTable.setHeaders(HEAD_PATH, HEAD_SIZE, HEAD_LEVEL);
 		localPopupMenu = createLocalPopupMenu(tabInfo);
@@ -561,7 +561,7 @@ public class ScpMenuItem extends ArchMenu<SshSetting>
 				{
 					return;
 				}
-				
+
 				int code = e.getKeyCode();
 				if(code == KeyEvent.VK_DELETE)
 				{
@@ -577,13 +577,13 @@ public class ScpMenuItem extends ArchMenu<SshSetting>
 					{
 						return;
 					}
-					
+
 					Arrays.sort(rows);
-					
+
 					for(int i = rows.length - 1; i >= 0; i--)
 					{
 						int row = rows[i];
-						
+
 						tabInfo.getLocalFiles().remove(model.getValueAt(row, 0));
 						model.removeRow(row);
 					}
@@ -597,7 +597,7 @@ public class ScpMenuItem extends ArchMenu<SshSetting>
 			{
 				int buttonCode = e.getButton();
 				Object source = e.getSource();
-				
+
 				if(MouseEvent.BUTTON3 == buttonCode
 						&& source instanceof SuRenTable)
 				{
@@ -605,9 +605,9 @@ public class ScpMenuItem extends ArchMenu<SshSetting>
 				}
 			}
 		});
-		
+
 		preLoadFiles(localTable, tabInfo);
-		
+
 		JScrollPane localPane = new JScrollPane(localTable);
 		GeneralDropTarget<SuRenTable> localDropTarget = new GeneralDropTarget<SuRenTable>()
 		{
@@ -620,10 +620,10 @@ public class ScpMenuItem extends ArchMenu<SshSetting>
 				{
 					return;
 				}
-				
+
 				drop.acceptDrop(DnDConstants.ACTION_REFERENCE);
 				Transferable transferable = drop.getTransferable();
-				
+
 				try
 				{
 					Object transfData = transferable.getTransferData(DataFlavor.javaFileListFlavor);
@@ -632,18 +632,18 @@ public class ScpMenuItem extends ArchMenu<SshSetting>
 					{
 						return;
 					}
-					
-					
+
+
 					result = (List<File>)transfData;
 					for(File file : result)
 					{
 						Vector<Object> data = new Vector<Object>();
-						
+
 						data.add(file.getAbsolutePath());
 						data.add(file.length());
-						
+
 						tabInfo.getLocalFiles().add(file.getAbsolutePath());
-						
+
 						fillTable(getTargetObject(), data);
 					}
 				}
@@ -667,7 +667,7 @@ public class ScpMenuItem extends ArchMenu<SshSetting>
 			{
 			}
 		});
-		
+
 		SimpleSftpProgressMonitor<SuRenTable> monitor = new SimpleSftpProgressMonitor<SuRenTable>()
 		{
 			private long maxCount;
@@ -675,33 +675,33 @@ public class ScpMenuItem extends ArchMenu<SshSetting>
 			private AtomicInteger index;
 			private AtomicBoolean done = new AtomicBoolean(false);
 			private Object lock;
-			
+
 			@Override
 			public void init(int op, String src, String dest, long max)
 			{
 				SuRenTable target = getTarget();
 				int rowCount = target.getRowCount();
-				
+
 				maxCount = max;
 				nowCount = 0;
 				index = new AtomicInteger(-1);
-				
+
 				for(int i = 0; i < rowCount; i++)
 				{
 					Object value = target.getValueAt(i, 0);
-					
+
 					if(src.equals(value))
 					{
 						index.set(i);
 						break;
 					}
 				}
-				
+
 				done.set(false);
 				lock = new Object();
-				
+
 				GeneralThread<Integer> generalThrad = new GeneralThread<Integer>("SimpleMonitorLevel"){
-					
+
 					private SuRenTable target = getTarget();
 
 					@Override
@@ -712,7 +712,7 @@ public class ScpMenuItem extends ArchMenu<SshSetting>
 						{
 							return;
 						}
-						
+
 						while(!done.get())
 						{
 							synchronized (lock)
@@ -725,10 +725,10 @@ public class ScpMenuItem extends ArchMenu<SshSetting>
 								{
 									e.printStackTrace();
 								}
-								
+
 								String level = String.valueOf(100.0 * nowCount / maxCount) + "%";
 								System.out.println(level);
-								
+
 								target.setValueAt(level, row, 2);
 							}
 						}
@@ -744,10 +744,10 @@ public class ScpMenuItem extends ArchMenu<SshSetting>
 				synchronized (lock)
 				{
 					nowCount += count;
-					
+
 					lock.notifyAll();
 				}
-				
+
 				return true;
 			}
 
@@ -755,7 +755,7 @@ public class ScpMenuItem extends ArchMenu<SshSetting>
 			public void end()
 			{
 				done.set(true);
-				
+
 				synchronized (lock)
 				{
 					lock.notifyAll();
@@ -764,25 +764,25 @@ public class ScpMenuItem extends ArchMenu<SshSetting>
 		};
 		monitor.setTarget(localTable);
 		tabInfo.setMonitor(monitor);
-		
+
 		JPanel rightPanel = createRightPanel(tabInfo);
-		
+
 		pane.setLeftComponent(localPane);
 		pane.setRightComponent(rightPanel);
-		
+
 		return pane;
 	}
-	
+
 	private JPopupMenu createLocalPopupMenu(final TabInfo tabInfo)
 	{
 		localPopupMenu = new JPopupMenu("Local");
-		
+
 		JMenuItem pullFiles = new JMenuItem("pull");
 		JMenuItem exploreFiles = new JMenuItem("explore");
-		
+
 		localPopupMenu.add(pullFiles);
 		localPopupMenu.add(exploreFiles);
-		
+
 		pullFiles.addActionListener(new ActionListener()
 		{
 			@Override
@@ -796,15 +796,15 @@ public class ScpMenuItem extends ArchMenu<SshSetting>
 				{
 					return;
 				}
-				
+
 				item = (JMenuItem) source;
 				menu = (JPopupMenu) item.getParent();
-				
+
 				if(!((invoker = menu.getInvoker()) instanceof SuRenTable))
 				{
 					return;
 				}
-				
+
 				preLoadFiles((SuRenTable) invoker, tabInfo);
 			}
 		});
@@ -815,7 +815,7 @@ public class ScpMenuItem extends ArchMenu<SshSetting>
 			{
 			}
 		});
-		
+
 		return localPopupMenu;
 	}
 
@@ -825,17 +825,17 @@ public class ScpMenuItem extends ArchMenu<SshSetting>
 		{
 			return;
 		}
-		
+
 		Set<File> localList = HomeScp.tmpPath;
 		for(File file : localList)
 		{
 			Vector<Object> item = new Vector<Object>();
-			
+
 			item.add(file.getAbsolutePath());
 			item.add(file.length());
-			
+
 			fillTable(localTable, item);
-			
+
 			tabInfo.getLocalFiles().add(file.getAbsolutePath());
 		}
 	}
@@ -844,28 +844,28 @@ public class ScpMenuItem extends ArchMenu<SshSetting>
 	{
 		JPanel rightPanel = new JPanel();
 		rightPanel.setLayout(new BorderLayout());
-		
+
 		final JComboBox hisPath = new JComboBox();
 		hisPath.setEditable(true);
-		
+
 		String path = tabInfo.getPath();
 		if(path != null)
 		{
 			hisPath.addItem(path);
 		}
-		
+
 		hisPath.addItemListener(new ItemListener()
 		{
-			
+
 			@Override
 			public void itemStateChanged(ItemEvent e)
 			{
 				Object item = e.getItem();
-				
+
 				tabInfo.setPath(item.toString());
 			}
 		});
-		
+
 		SuRenTable remoteTable = new SuRenTable();
 		remoteTable.setHeaders(HEAD_PATH);
 		tabInfo.setRemoteTable(remoteTable);
@@ -879,34 +879,34 @@ public class ScpMenuItem extends ArchMenu<SshSetting>
 				{
 					return;
 				}
-				
+
 				Object source = e.getSource();
 				if(!(source instanceof SuRenTable))
 				{
 					return;
 				}
-				
+
 				SuRenTable table = (SuRenTable) source;
 				int row = table.getSelectedRow();
 				if(row < 0 || row >= table.getRowCount())
 				{
 					return;
 				}
-				
+
 				Object value = table.getValueAt(row, 0);
 				ChannelSftp channel = tabInfo.getFtpChannel();
-				
+
 				if(channel == null || channel.isClosed())
 				{
 					return;
 				}
-				
+
 				try
 				{
 					channel.cd(value.toString());
-					
+
 					remoteFlush(tabInfo);
-					
+
 					String pwd = channel.pwd();
 					hisPath.setSelectedItem(pwd);
 					hisPath.addItem(pwd);
@@ -917,19 +917,19 @@ public class ScpMenuItem extends ArchMenu<SshSetting>
 				}
 			}
 		});
-		
+
 		JScrollPane remotePane = new JScrollPane(remoteTable);
-		
+
 		rightPanel.add(hisPath, BorderLayout.NORTH);
 		rightPanel.add(remotePane, BorderLayout.CENTER);
-		
+
 		return rightPanel;
 	}
-	
+
 	private boolean saveCfg(String path, SshSetting cfgObj)
 	{
 		SettingUtil<SshSetting> settingUtil = new SettingUtil<SshSetting>();
-		
+
 		return settingUtil.save(cfgObj, SSH_CFG_PATH,
 				SshSetting.class, SshSetting.Ssh.class);
 	}
@@ -939,13 +939,13 @@ public class ScpMenuItem extends ArchMenu<SshSetting>
 	{
 		return saveCfg(SSH_CFG_PATH, cfgObj);
 	}
-	
+
 	private SshSetting loadCfg(String path)
 	{
 		SettingUtil<SshSetting> settingUtil = new SettingUtil<SshSetting>();
-		
+
 		SshSetting data = settingUtil.load(path, SshSetting.class, SshSetting.Ssh.class);
-		
+
 		return data;
 	}
 
@@ -968,7 +968,7 @@ public class ScpMenuItem extends ArchMenu<SshSetting>
 		private Session session;
 		private ChannelSftp ftpChannel;
 		private SimpleSftpProgressMonitor<?> monitor;
-		
+
 		public TabInfo()
 		{
 			monitor = new SimpleSftpProgressMonitor<Object>()
@@ -991,12 +991,12 @@ public class ScpMenuItem extends ArchMenu<SshSetting>
 				}
 			};
 		}
-		
+
 		public TabInfo(String title)
 		{
 			this.title = title;
 		}
-		
+
 		public String getTitle()
 		{
 			return title;

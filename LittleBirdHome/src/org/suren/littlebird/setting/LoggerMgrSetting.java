@@ -85,7 +85,7 @@ public class LoggerMgrSetting
 		{
 			setConsoleBuffer(20);
 		}
-		
+
 		return consoleBuffer;
 	}
 	public void setConsoleBuffer(int consoleBuffer)
@@ -113,7 +113,7 @@ public class LoggerMgrSetting
 		{
 			setHistoryKeyword(new LinkedHashSet<String>());
 		}
-		
+
 		getHistoryKeyword().remove(keyword);
 		getHistoryKeyword().add(keyword);
 	}
@@ -139,10 +139,10 @@ public class LoggerMgrSetting
 			Set<String> agentType = new HashSet<String>();
 			agentType.add("jmx");
 			agentType.add("webservice");
-			
+
 			setAgentType(agentType);
 		}
-		
+
 		return agentType;
 	}
 	public void setAgentType(Set<String> agentType)

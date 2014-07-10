@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <project default="create_run_jar" name="JarMod_Jar">
-	<property name="project" location="D:/Work/Application/little-bird/trunk/LittleBirdHome"/>
+	<property name="project" location="d:/work/application/little-bird/trunk/LittleBirdHome"/>
 
     <target name="create_run_jar">
         <jar destfile="d:/little_bird.jar" filesetmanifest="mergewithoutmain">
